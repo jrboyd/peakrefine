@@ -200,11 +200,14 @@ ssvCrossCorr = function(bam_file, qgr, nbest = 20, revbest = FALSE,
 ssvStrandCorr = function(bam_file, qgr, nbest = 20,
                          qual_metric = "qValue", max_dupes = 1,
                          frag_min = 50, frag_max = 250,
-                         step = 10, include_plots = TRUE){
+                         step = 10, small_step = 1, include_plots = TRUE){
     if(is.na(nbest)){
         test_gr = qgr
     }else{
         test_gr = qgr[order(mcols(qgr)[[qual_metric]], decreasing = TRUE)][seq_len(min(nbest, length(qgr)))]
+    }
+    if(is.null(test_gr$id)){
+        test_gr$id = paste0("peak_", seq_along(test_gr))
     }
     if(is.null(names(test_gr))){
         names(test_gr) = test_gr$id
@@ -237,7 +240,7 @@ ssvStrandCorr = function(bam_file, qgr, nbest = 20,
     corrVals[, crank := rank(-corr), by = .(id)]
     center = round(mean(corrVals[crank < 2 & !is.na(corr)]$fragLen))
     message("correlate fine...")
-    corrValsDetail = pbapply::pblapply(seq(from = center-step, to = center+step, by = 1), function(fragLen){
+    corrValsDetail = pbapply::pblapply(seq(from = center-step, to = center+step, by = small_step), function(fragLen){
         dc_dt = calcStrandCorr(reads_dt, test_gr, fragLen)
         dc_dt$fragLen = fragLen
         dc_dt

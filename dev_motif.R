@@ -12,377 +12,231 @@ library(seqsetvis)
 library(data.table)
 library(peakrefine)
 data("PWMLogn.hg19.MotifDb.Hsap")
+setwd("~/R/peakrefine/")
+# source("functions_motif.R")
 
 ncores = 32
 
 registerCoresPWMEnrich(ncores)
 useBigMemoryPWMEnrich(TRUE)
 
-#
-# motifs.denovo = readMotifs(file = "MA0511.1.jaspar")
-# genomic.acgt = getBackgroundFrequencies("hg19")
-#
-# pwms.denovo = toPWM(motifs.denovo, prior=genomic.acgt)
-# bg.denovo = makeBackground(pwms.denovo, organism="hg19", type="logn", quick=TRUE)
-#
-#
-# PWMLogn.hg19.MotifDb.Hsap@pwms
+rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/"
+setwd(rdir)
+qgr = easyLoad_narrowPeak("MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks.narrowPeak")[[1]]
+bam_file = file.path(rdir, "MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam")
+bam_input = file.path(rdir, "MCF10A_input_pooled/MCF10A_input_pooled.bam")
+todo_fl = c(50, 65, 100, 150, 195, 200, 205, 215, 230, 260, 300)
+id_oi = unique(names(PWMLogn.hg19.MotifDb.Hsap$pwms))
+id_oi = id_oi[grepl("CTCF", id_oi)]
+gray_fl = 100
+red_fl = 205
+pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
+
+# rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/"
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled.bam")
+# bam_input = file.path(rdir, "MCF10CA1_input_pooled/MCF10CA1_input_pooled.bam")
+# todo_fl = c(50, 100, 150, 195, 200, 205, 215, 240, 260, 300)
+# id_oi = unique(names(PWMLogn.hg19.MotifDb.Hsap$pwms))
+# id_oi = id_oi[grepl("CTCF", id_oi)]
+# gray_fl = 100
+# red_fl = 205
+# pdf_name = "AF_MCF10CA1_CTCF_metrics.pdf"
+
+# rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_MCF7_ESR1_enhancers"
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("MCF7-E2_ESR1_pooled/MCF7-E2_ESR1_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "MCF7-E2_ESR1_pooled/MCF7-E2_ESR1_pooled.bam")
+# bam_input = file.path(rdir, "MCF7-E2_input_pooled/MCF7-E2_input_pooled.bam")
+# todo_fl = c(37,100, 110, 120, 200)
+# id_oi = unique(names(PWMLogn.hg19.MotifDb.Hsap$pwms))
+# id_oi = id_oi[grepl("ESR[1A]", id_oi)]
+# gray_fl = 37
+# red_fl = 100
+# pdf_name = "ESR1_carroll_metrics.pdf"
+
+# rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/"
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled.bam")
+# bam_input = file.path(rdir, "MCF10A-blocked_input_pooled/MCF10A-blocked_input_pooled.bam")
+# todo_fl = c(100, 150, 200, 280)
+# id_oi = c("Hsapiens-jolma2013-RUNX2-3")
+# gray_fl = 100
+# red_fl = 150
+# pdf_name = "JR_Runx1-mitotic_metrics.pdf"
+
+##AF RUNX1
+# rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_RUNX1_ChIP/"
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled.bam")
+# bam_input = file.path(rdir, "AF-MCF10A_input_pooled/AF-MCF10A_input_pooled.bam")
+# todo_fl = c(50, 65, 100, 175, 200, 280)
+# id_oi = c("Hsapiens-jolma2013-RUNX2-3")
+# gray_fl = 65
+# red_fl = 175
+# pdf_name = "AF_MCF10A-Runx1_metrics.pdf"
+
+# rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_RUNX1_ChIP/"
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("AF-MCF10CA1_RUNX1_pooled/AF-MCF10CA1_RUNX1_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "AF-MCF10CA1_RUNX1_pooled/AF-MCF10CA1_RUNX1_pooled.bam")
+# bam_input = file.path(rdir, "AF-MCF10CA1_input_pooled/AF-MCF10CA1_input_pooled.bam")
+# todo_fl = c(50, 65, 100, 150, 175, 200, 280)
+# gray_fl = 65
+# red_fl = 150
+# id_oi = c("Hsapiens-jolma2013-RUNX2-3")
+# pdf_name = "AF_MCF10CA1a-Runx1_metrics.pdf"
+
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_Runx2_pooled/MDA231_Runx2_pooled.bam"
+# bam_input = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_input_pooled/MDA231_input_pooled.bam"
+# qgr = easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_Runx2_pooled/MDA231_Runx2_pooled_peaks.narrowPeak")[[1]]
+# todo_fl = c(50, 150, 180, 200, 220, 280)
+# gray_fl = 150
+# red_fl = 200
+# id_oi = c("Hsapiens-jolma2013-RUNX2-3")
+# pdf_name = "MK_MDA231-Runx2_metrics.pdf"
 
 
-
-print(load("../KZ_Runx1_BRG1_ESR1_overlap/corr_MCF7_runx1_and_esr1.save"))
-setwd("/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/")
-
-qgr = easyLoad_narrowPeak("MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak")[[1]]
-bam_file = "MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled.bam"
-
-bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_Runx2_pooled/MDA231_Runx2_pooled.bam"
-bam_input = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_input_pooled/MDA231_input_pooled.bam"
-qgr = easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_Runx2_pooled/MDA231_Runx2_pooled_peaks.narrowPeak")[[1]]
-
+qgr = subset(qgr, seqnames(qgr) != "chrU13369.1")
 qgr$id = paste0("region_", seq_along(qgr))
 names(qgr) = qgr$id
 bgr = qgr
 
-# cc = ssvCrossCorr(bam_file, bgr, shift_min = 0, shift_max = 300, step = 10, nbest = 16)
-# corr_res = ssvStrandCorr(bam_file, bgr, frag_min = 1, frag_max = 300, nbest = 16)
-#
-# roi150 = c(1475, 1477, 1478, 1484)
-# roi100 = c(1505, 1510, 828)
-#
-# p1 = ggplot(cc, aes(x = shiftLen, y = corr)) +
-#     facet_wrap("id") +
-#     geom_path() +
-#     labs(title = "cross corr")
-# p2 = corr_res$sample_plot +
-#     labs(title = "frag corr")
+sc = ssvStrandCorr(bam_file, qgr, frag_max = 350)
+sc$read_length
+sc$frag_length
+sc$sample_plot + labs(title = basename(bam_file),
+                      subtitle = paste("read length:", sc$read_length,
+                                       "\nfragment length:", sc$frag_length))
 
-
-score_motif = function(bam_file, qgr, fl, ncores = 16){
-    ncores = 32
-
-    registerCoresPWMEnrich(ncores)
-    useBigMemoryPWMEnrich(TRUE)
+nbases = 200
+if(!exists("motif_res")){
+    cfile = file.path("~/R/peakrefine/cache", sub(".bam", "", basename(bam_file)), paste0("cache_motif_res_", nbases, "nbases_", length(qgr), "seq.save"))
+    if(file.exists(cfile)){
+        load(cfile)
+    }else{
+        motif_res = pre_motif(qgr)
+    }
 }
-
+# todo_fl = c(50, 100, 175, 200, 280)
 all_res = list()
-
-# fl = corr_res$frag_length
-# fl = 180
-todo_fl = c(180, 80, 130, 150, 230, 280, 330)
-# rl = corr_res$read_length
-
-### top enriched can be cached but score and pval are group calcs
-subset_MotifEnrichmentResults = function(me_res, k){
-    res = me_res@res
-    res$sequences = res$sequences[k]
-    res$sequence.nobg = res$sequence.nobg[k, ]
-    res$sequence.bg = res$sequence.bg[k, ]
-    res$sequence.norm = res$sequence.norm[k, ]
-
-    sequences = res$sequences
-    score = res$score
-    #TODO fix HARDCODE
-    pwmobj = PWMLogn.hg19.MotifDb.Hsap
-    pwms = res$pwms
-    verbose = FALSE
-    cutoff = NULL
-    bg = res$bg
-    group.only = FALSE
-
-### from motifEnrichment
-    if (score == "affinity") {
-        seq.len = sapply(sequences, length)
-        pwm.len = sapply(pwms, length)
-        # res$sequence.nobg = motifScores(sequences, pwms, verbose = verbose)
-        res$group.nobg = PWMEnrich:::affinitySequenceSet(res$sequence.nobg,
-                                             seq.len, pwm.len)
-    } else if (score == "clover") {
-        # res$sequence.nobg = motifScores(sequences, pwms, verbose = verbose)
-        res$group.nobg = PWMEnrich:::cloverScore(res$sequence.nobg, verbose = verbose)
-    } else if (score == "cutoff") {
-        res$params = list(cutoff = cutoff)
-        # res$sequence.nobg = motifScores(sequences, pwms, cutoff = cutoff,
-                                        # verbose = verbose)
-        res$group.nobg = colSums(res$sequence.nobg)
-    } else {
-        stop(paste("Unknown scoring algorithm: '", score, "'. Please select one of: 'affinity', 'cutoff', 'clover'",
-                   sep = ""))
-    }
-
-    if (bg == "none") {
-        # res$sequence.bg = NULL
-        res$group.bg = NULL
-    } else if (bg == "logn") {
-        seq.len = sapply(sequences, length)
-        pwm.len = sapply(pwms, length)
-        # res$sequence.bg = logNormPval(res$sequence.nobg, seq.len,
-        #                               pwm.len, pwmobj@bg.mean, pwmobj@bg.sd, pwmobj@bg.len)
-        # colnames(res$sequence.bg) = names(pwms)
-        res$sequence.norm = apply(res$sequence.bg, 1:2, qlnorm,
-                                  lower.tail = FALSE)
-        if (score == "affinity") {
-            if (is.matrix(pwmobj@bg.mean)) {
-                res$group.bg = apply(res$sequence.bg, 2, function(x) {
-                    pchisq(-2 * sum(log(x)), 2 * length(x), lower.tail = FALSE)
-                })
-                res$group.norm = sapply(res$group.bg, qlnorm,
-                                        lower.tail = FALSE)
-            } else {
-                res$group.bg = logNormPvalSequenceSet(res$sequence.nobg,
-                                                      seq.len, pwm.len, pwmobj@bg.mean, pwmobj@bg.sd,
-                                                      pwmobj@bg.len)
-                res$group.norm = sapply(res$group.bg, qlnorm,
-                                        lower.tail = FALSE)
-            }
-        } else if (score == "clover") {
-            res$group.bg = cloverScore(res$sequence.norm, verbose = verbose)
-        }
-    } else if (bg == "z") {
-        seq.len = sapply(sequences, length)
-        pwm.len = sapply(pwms, length)
-        # res$sequence.bg = cutoffZscore(res$sequence.nobg, seq.len,
-        #                                pwm.len, pwmobj@bg.P)
-        res$group.bg = cutoffZscoreSequenceSet(res$sequence.nobg,
-                                               seq.len, pwm.len, pwmobj@bg.P)
-    } else if (bg == "pval") {
-        seq.len = sapply(sequences, length)
-        pwm.len = sapply(pwms, length)
-        usecutoff = NULL
-        if (score == "cutoff")
-            usecutoff = cutoff
-        if (!group.only) {
-            # res$sequence.bg = t(sapply(1:length(seq.len), function(i) empiricalPvalue(res$sequence.nobg[i,
-            #                                                                                             ], seq.len[i], pwm.len, pwmobj@bg.fwd, pwmobj@bg.rev,
-            #                                                                           cutoff = usecutoff, B = B, verbose = verbose)))
-        }
-        if (score == "clover")
-            res$group.bg = cloverPvalue1seq(res$sequence.nobg,
-                                            seq.len, pwm.len, pwmobj@bg.fwd, pwmobj@bg.rev,
-                                            B = B, verbose = verbose, clover = res$group.nobg)
-        else res$group.bg = empiricalPvalueSequenceSet(res$sequence.nobg,
-                                                       seq.len, pwm.len, pwmobj@bg.fwd, pwmobj@bg.rev, cutoff = usecutoff,
-                                                       B = B, verbose = verbose)
-    } else if (bg == "ms") {
-        usecutoff = NULL
-        if (score == "cutoff")
-            usecutoff = cutoff
-        # res$sequence.bg = matrixShuffleZscorePerSequence(res$sequence.nobg,
-        #                                                  sequences, pwms, cutoff = usecutoff, B = motif.shuffles)
-    } else if (bg == "gev") {
-        seq.len = sapply(sequences, length)
-        pwm.len = sapply(pwms, length)
-        # res$sequence.bg = gevPerSequence(res$sequence.nobg, seq.len,
-        #                                  pwm.len, pwmobj@bg.loc, pwmobj@bg.scale, pwmobj@bg.shape)
-        res$group.bg = NULL
-    } else {
-        stop(paste("Uknown background correction algorithm: '",
-                   bg, "', Please select one of: 'none', 'logn', 'z', 'pval', 'ms'",
-                   sep = ""))
-    }
-
-    if (group.only) {
-        seq.n = grep("^sequence[.]", names(res))
-        if (length(seq.n) > 0) {
-            res = res[-seq.n]
-        }
-    }
-    if ("sequence.nobg" %in% names(res)) {
-        rownames(res$sequence.nobg) = names(sequences)
-    }
-    if ("sequence.bg" %in% names(res)) {
-        rownames(res$sequence.bg) = names(sequences)
-    }
-
-    me_res@res = res
-    return(me_res)
-}
-
 for(fl in todo_fl){
-    message("fragLen ", fl)
-    odir = file.path("~/R/peakrefine/cache", sub(".bam", "", basename(bam_file)))
-    dir.create(odir, recursive = TRUE, showWarnings = FALSE)
-    setwd(odir)
-
-    # cowplot::plot_grid(p1 +
-    #                        annotate("line", x = rep(fl, 2), y = c(-.5, 1), color = "green") +
-    #                        annotate("line", x = rep(rl, 2), y = c(-.5, 1), color = "red"),
-    #                    p2 +
-    #                        annotate("line", x = rep(fl, 2), y = c(-.5, 1), color = "green") +
-    #                        annotate("line", x = rep(rl, 2), y = c(-.5, 1), color = "red")
-    # )
-    cfile = paste0("cache_strandRes_", fl, ".save")
-    if(file.exists(cfile)){
-        load(cfile)
-    }else{
-        message("calculating strandRes...")
-        strandRes = ssvStrandCorrFull(bam_file, qgr, fragLen = fl, ncores = ncores, output_withGRanges = TRUE)
-        save(strandRes, file = cfile)
-    }
-
-    cfile = paste0("cache_strandResInput_", fl, ".save")
-    if(file.exists(cfile)){
-        load(cfile)
-    }else{
-        message("calculating strandResInput...")
-        strandResInput = ssvStrandCorrFull(bam_input, qgr, fragLen = fl, ncores = ncores, output_withGRanges = TRUE)
-        save(strandResInput, file = cfile)
-    }
-
-    corrInput_dt = as.data.table(strandResInput)
-    corrInput_dt = corrInput_dt[, .(id,
-                     input_read_corr = read_corr,
-                     input_frag_corr = frag_corr,
-                     input_count = count)]
-
-    corr_dt = as.data.table(strandRes)
-    corr_dt = merge(corr_dt, corrInput_dt)
-    corr_dt = corr_dt[seqnames != "chrU13369.1"]
-    corr_dt[, diff_corr := frag_corr - read_corr]
-    #stratify by various metrics
-    ngroup = 8
-    g = factor(paste0("g", seq_len(ngroup)), levels = paste0("g", seq_len(ngroup)))
-    ##
-    corr_dt[, diff_group := g[ceiling(rank(-diff_corr) / .N * ngroup)]]
-    corr_dt[, frag_group := g[ceiling(rank(-frag_corr) / .N * ngroup)]]
-    ## fragment length independent metrics
-    if(fl == todo_fl[1]){
-        corr_dt[, read_group := g[ceiling(rank(-read_corr) / .N * ngroup)]]
-        corr_dt[, signalValue_group := g[ceiling(rank(-signalValue) / .N * ngroup)]]
-        corr_dt[, pValue_group := g[ceiling(rank(-pValue) / .N * ngroup)]]
-    }
-    ## input metrics
-    corr_dt[, input_read_group := g[ceiling(rank(-input_read_corr) / .N * ngroup)]]
-    corr_dt[, input_frag_group := g[ceiling(rank(-input_frag_corr) / .N * ngroup)]]
-    corr_dt[, input_count_group := g[ceiling(rank(-input_count) / .N * ngroup)]]
-
-    # plot(sort(corr_dt$frag_corr - corr_dt$read_corr))
-    # plot(sort(corr_dt$frag_corr))
-    # plot(corr_dt$frag_corr, corr_dt$pValue)
-    # plot(corr_dt$diff_corr, corr_dt$pValue)
-
-    todo_groups = colnames(corr_dt)[grepl("group", colnames(corr_dt))]
-
-    myMotif = function(qgr){
-        qgr = resize(qgr, 200, fix = "center")
-        # qgr = GenomicRanges::shift(qgr, 600)
-
-        sequences = getSeq(Hsapiens, qgr)
-
-        res19 = motifEnrichment(sequences, PWMLogn.hg19.MotifDb.Hsap)
-        groupReport(res19)
-    }
-
-
-    all_motif = lapply(todo_groups, function(grp){
-        lapply(levels(corr_dt[[grp]]), function(sel){
-            cfile = paste0("cache_", grp, "_", sel, "_", ngroup, "_", fl, ".save")
-            if(file.exists(cfile)){
-                load(cfile)
-            }else{
-                message("calculating motifs for ",
-                        grp, " ", sel)
-                qgr = GRanges(corr_dt[corr_dt[[grp]] == sel])
-                myMotifRes = myMotif(qgr)
-                save(myMotifRes, file = cfile)
-            }
-            myMotifRes
-        })
-    })
-    setwd("~/R/peakrefine/")
-
-    names(all_motif) = todo_groups
-
-    all_motif$signalValue_group
-
-    dt_motif = rbindlist(use.names = TRUE, idcol = "metric",
-                         lapply(all_motif, function(x){
-                             names(x) = g
-                             x
-                             rbindlist(use.names = TRUE, idcol = "group",
-                                       lapply(x, function(y){
-                                           dt = as.data.table(as.data.frame(y))
-                                           colnames(dt) = gsub("\\.", "_", colnames(dt))
-                                           dt
-                                       }))
-                         }))
-
-    dt_motif$group = factor(dt_motif$group, levels = rev(levels(g)))
-    dt_motif = dt_motif[order(group)][order(metric)][order(id)]
-    # ggplot(dt_motif[grepl("RUNX", id)], aes(x = group, y = top_motif_prop, color = metric, group =  paste(id, metric))) +
-    #     geom_path() +
-    #     facet_grid("id~metric") +
-    #     theme(panel.grid.major.y = element_line())
-
-    all_res[[paste("fl_", fl)]] = dt_motif
-
-    # ggplot(dt_motif[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = top_motif_prop, color = metric, group =  paste(id, metric))) +
-    #     geom_path() +
-    #     facet_wrap("id") +
-    #     # facet_grid("id~metric") +
-    #     theme(panel.grid.major.y = element_line())
+    dt_motif = score_motif(bam_file, ncores = 16,
+                           bam_input,
+                           qgr,
+                           fl,
+                           motif_res = motif_res,
+                           include_fl_independent = fl == todo_fl[1])
+    all_res[[paste0("fl_", fl)]] = dt_motif
 }
 
-# all_res
-#
-# ggplot(all_res$`fl_ 180`[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = top_motif_prop, color = metric, group =  paste(id, metric))) +
-#     geom_path() +
-#     facet_wrap("id") +
-#     # facet_grid("id~metric") +
-#     theme(panel.grid.major.y = element_line())
-#
-# ggplot(all_res$`fl_ 280`[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = top_motif_prop, color = metric, group =  paste(id, metric))) +
-#     geom_path() +
-#     facet_wrap("id") +
-#     # facet_grid("id~metric") +
-#     theme(panel.grid.major.y = element_line())
+
 
 dt = rbindlist(all_res, use.names = TRUE, idcol = "fragLen")
-dt$fragLen = factor(dt$fragLen, levels = paste("fl_", sort(todo_fl)))
-mycol = c("gray", "black", "red")[c(1, 1, 3, 2, 2, 2, 1)]
-names(mycol) = paste("fl_", sort(todo_fl))
-ggplot(dt[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = top_motif_prop, color = fragLen, group =  paste(id, metric, fragLen))) +
+dt$fragLen = factor(dt$fragLen, levels = paste0("fl_", sort(todo_fl)))
+dt[, numFragLen := as.numeric(sub("fl_", "", fragLen))]
+dt$metric = sub("_group", "", dt$metric)
+dt$metric = factor(dt$metric, levels = c("pValue", "signalValue",
+                                         "frag", "diff", "count", "input_count",
+                                         "input_frag", "input_read", "read"))
+
+mycol = c("gray", "black", "red")[rep(2, length(todo_fl))]
+mycol[todo_fl == gray_fl] = "gray"
+mycol[todo_fl == red_fl] = "red"
+names(mycol) = paste0("fl_", sort(todo_fl))
+
+
+# id_oi = id_oi[grepl("CTCF", id_oi)]
+pdf(file.path("results", pdf_name), width = 18, height = length(id_oi)*3.5)
+ggplot(dt[id %in% id_oi], aes(x = group, y = top_motif_prop, color = fragLen, group =  paste(id, metric, fragLen))) +
     geom_path() +
-    # facet_wrap("id") +
-    facet_grid("id~metric") +
+    geom_point() +
+    ggrepel::geom_text_repel(data = dt[as.numeric(group) == max(as.numeric(group)) & id %in% id_oi],
+                             mapping = aes(label = numFragLen)) +
+    facet_grid("id~metric", scales = "free_y") +
     theme(panel.grid.major.y = element_line()) +
+    # scale_x_discrete(breaks = c(1, 8), labels = c("worst", "best")) +
     scale_color_manual(values = mycol) + theme_classic()
 
-# ggplot(dt[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = -log10(p_value), color = fragLen, group =  paste(id, metric, fragLen))) +
+
+ggplot(dt[id %in% id_oi], aes(x = group, y = raw_score, color = fragLen, group =  paste(id, metric, fragLen))) +
+    geom_path() +
+    geom_point() +
+    ggrepel::geom_text_repel(data = dt[as.numeric(group) == max(as.numeric(group)) & id %in% id_oi],
+                             mapping = aes(label = numFragLen)) +
+    facet_grid("id~metric", scales = "free_y") +
+    theme(panel.grid.major.y = element_line()) +
+    scale_color_manual(values = mycol) + theme_classic()
+dev.off()
+
+
+strand_file  = dir(file.path("~/R/peakrefine/cache", sub(".bam", "", basename(bam_file))), pattern = paste0("strandRes_", as.character(red_fl)), full.names = TRUE)
+load(strand_file)
+sr = as.data.table(strandRes)
+png(file.path("results", sub("metrics.pdf", "matrix.png", pdf_name)), width = 8, height = 8, units = "in", res= 300)
+plot(sr[, .(read_corr, frag_corr, diff_corr = frag_corr - read_corr, signalValue, pValue)],
+     pch = 16, col = rgb(0,0,0,.02))
+dev.off()
+
+
+pdt = data.table(x = seq_len(nrow(sr)), y = sort(sr$frag_corr))
+plot(pdt)
+pdt[, x := (x - min(x)) / (max(x) - min(x))]
+pdt[, y := (y - min(y)) / (max(y) - min(y))]
+pdt[, y := seqsetvis:::movingAverage(y,n = 100)]
+ls = loess(pdt$y ~ pdt$x)
+pr.loess <- predict(ls)
+lines(pr.loess~pdt$x, col = "red")
+fit3 <- lm(pdt$y~poly(pdt$x,3,raw=TRUE))
+pr.fit3 = predict(fit3)
+lines(pr.fit3~pdt$x, col = "blue")
+
+
+stagger = cbind(pdt[-nrow(pdt)], pdt[-1,])
+colnames(stagger) = paste0(colnames(stagger), rep(1:2, each = 2))
+stagger[, m := (y2 - y1) / (x2 - x1)]
+stagger[, xm := (x1 + x2) / 2]
+plot(stagger[, .(xm, m)], ylim = c(0,50))
+plot(seqsetvis:::movingAverage(stagger$m, n = 100), ylim = c(0,10), pch = 16, col = rgb(0,0,0,.02))
+# min_p = min(dt[p_value > 0]$p_value)
+# dt[p_value == 0, p_value := min_p]
+#
+# id_oi = "ABCF2"
+# ggplot(dt[(id %in% id_oi)], aes(x = group, y = -log10(p_value), color = fragLen, group =  paste(id, metric, fragLen))) +
 #     geom_path() +
-#     # facet_wrap("id") +
+#     geom_point() +
+#     ggrepel::geom_text_repel(data = dt[as.numeric(group) == max(as.numeric(group)) & id %in% id_oi],
+#                              mapping = aes(label = numFragLen)) +
 #     facet_grid("id~metric") +
-#     theme(panel.grid.major.y = element_line())
-
-ggplot(dt[id %in% c("Hsapiens-jolma2013-RUNX2-3")], aes(x = group, y = raw_score, color = fragLen, group =  paste(id, metric, fragLen))) +
-    geom_path() +
-    # facet_wrap("id") +
-    facet_grid("id~metric") +
-    theme(panel.grid.major.y = element_line()) +
-    scale_color_manual(values = mycol) + theme_classic()
-
-# qgr = GRanges(runx_corr[signalValue > 10 & qValue > 10 & fragment > .8 & diff > .1])
-# qgr = qgr[order(qgr$pValue, decreasing = TRUE)][1:2000]
-
-
+#     theme(panel.grid.major.y = element_line()) +
+#     scale_color_manual(values = mycol) + theme_classic()
 #
-# rep19 = as.data.table(as.data.frame(rep19raw))
-# gsub("\\.", "_", colnames(rep19))
-# rep19[order(`top.motif.prop`, decreasing = TRUE)]
-# rep19[grepl("RUN",rep19$target)]
+# id_oi2 = dt[, .N, by = .(id)][N == 168]$id
 #
-# plot(rep19raw[1:10], fontsize=7, id.fontsize=5)
+# resClust = ssvSignalClustering(dt[metric == "frag_group" & id %in% id_oi2],
+#                     row_ = "id",
+#                     column_ = "group",
+#                     facet_ = "fragLen",
+#                     fill_ = "top_motif_prop", max_rows = Inf)
+# resMap = seqsetvis::ssvSignalHeatmap(resClust,
+#                                   row_ = "id",
+#                                   column_ = "group",
+#                                   facet_ = "fragLen",
+#                                   fill_ = "top_motif_prop")
+# resMap
+# resClust[cluster_id == "1"][order(top_motif_prop, decreasing = TRUE)][, unique(id)]
 #
-#
-# res.denovo = motifEnrichment(sequences, bg.denovo)
-# rep = as.data.frame(sequenceReport(res.denovo, seq_along(qgr)))
-# head(rep)
-# ggplot(rep, aes(x = raw.score)) + geom_histogram()
-# ggplot(rep, aes(x = p.value)) + geom_histogram()
-# groupReport(res.denovo)
-#
-# score = motifScores(sequences, motifs.denovo, raw.scores = TRUE)
-# # score
-#
-#
-# plotMotifScores(score[1:10])
+# dt[, lg_p_value := -log10(p_value)]
+# resClust = ssvSignalClustering(dt[metric == "frag_group" & id %in% id_oi2], nclust = 12,
+#                                row_ = "id",
+#                                column_ = "group",
+#                                facet_ = "fragLen",
+#                                fill_ = "lg_p_value", max_rows = Inf)
+# resMap = seqsetvis::ssvSignalHeatmap(resClust,
+#                                      row_ = "id",
+#                                      column_ = "group",
+#                                      facet_ = "fragLen",
+#                                      fill_ = "lg_p_value")

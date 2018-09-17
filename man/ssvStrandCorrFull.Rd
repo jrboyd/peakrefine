@@ -5,7 +5,7 @@
 \title{Title}
 \usage{
 ssvStrandCorrFull(bam_file, qgr, fragLen, qual_metric = "id",
-  max_dupes = 1, ncores = 1)
+  max_dupes = 1, ncores = 1, output_withGRanges = TRUE)
 }
 \arguments{
 \item{ncores}{}

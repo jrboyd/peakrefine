@@ -5,3 +5,5 @@
 cache
 *.jaspar
 tmp.reads_dt.save
+*.pdf
+*.png
