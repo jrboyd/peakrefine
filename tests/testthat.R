@@ -3,4 +3,4 @@
 library(testthat)
 
 ## test package
-test_check(package = "seqsetvis")
+test_check(package = "peakrefine")

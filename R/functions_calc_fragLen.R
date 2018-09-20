@@ -1,32 +1,91 @@
 
+#' remove positional read duplicates from data.table
+#'
+#' @param reads_dt a data.table containing read span information.  required
+#' columns are which_label, start, end, and strand.
+#' @param max_dupes integer >= 1, the maximum allowed duplicates per position.
+#'
+#' @return data.table with reads in excess of max_dupes removed
+#'
+#' @examples
+#' library(data.table)
+#' n = 4
+#' dt = data.table(
+#'   which_label = seq_len(n),
+#'   seqnames = "chr1",
+#'   strand = c("+", "-"),
+#'   start = seq_len(n),
+#'   end = seq_len(n) + 10
+#' )
+#' dt[, width := end - start + 1]
+#' make_dupes = seq_len(nrow(dt))
+#' make_dupes = rep(make_dupes, make_dupes)
+#' dt = dt[make_dupes]
+#' lapply(1: n, function(x)peakrefine:::.remove_duplicates(dt, max_dupes = x))
+.remove_duplicates = function(reads_dt, max_dupes){
+    stopifnot(max_dupes >= 1)
+    stopifnot(class(reads_dt) == "data.table")
+    stopifnot(all(c("which_label", "start", "end", "strand") %in%
+                      colnames(reads_dt)))
+    # browser()
+    ndupe = which_label = NULL
+    reads_dt[, ndupe := 1L]
+    reads_dt[strand == "+",
+             ndupe := seq_len(.N)[order(width, decreasing = TRUE)],
+             by = list(which_label, start)]
+    reads_dt[strand == "-",
+             dupe := seq_len(.N)[order(width, decreasing = TRUE)],
+             by = list(which_label, end)]
+    reads_dt = reads_dt[ndupe <= max_dupes]
+    reads_dt$ndupe = NULL
+    reads_dt
+}
 
-#' fetchStrands
+#' .fetch_bam_stranded
 #'
-#' @param bam_f
-#' @param qgr
-#' @param max_dupes
-#' @param ...
+#' @param bam_f character. a .bam file, must have index file in same directory:
+#'   .bam.bai
+#' @param qgr GRanges, regions to retrieve reads for.
+#' @param max_dupes numeric, maximum positional duplicates allowed.  See
+#'   \code{\link{.remove_duplicates}}
+#' @param ... additional arguments passed to
+#'   \code{\link[Rsamtools]{ScanBamParam}}
 #'
-#' @return
+#' @return a tidy data.table of read pileup coverage from bam_f for regions in
+#'   qgr
 #' @export
 #' @rawNamespace import(data.table, except = c(shift, first, last, second))
 #' @import Rsamtools
 #' @examples
-fetchStrands = function(bam_f,
-                        qgr,
-                        max_dupes = Inf,
-                        ...){
+#' bam_file = system.file("extdata",
+#'   "MCF10A_CTCF.random5.bam", package = "peakrefine")
+#' bam_input = system.file("extdata",
+#'   "MCF10A_input.random5.bam", package = "peakrefine")
+#' np = system.file("extdata",
+#'   "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
+#' qgr = rtracklayer::import(np, format = "narrowPeak")
+#' .fetch_bam_stranded(bam_file, qgr)
+#'
+.fetch_bam_stranded = function(bam_f,
+                               qgr,
+                               max_dupes = Inf,
+                               ...){
     stopifnot(is.numeric(max_dupes))
     stopifnot(max_dupes >= 1)
     sbgr = qgr
     strand(sbgr) = "*"
     sbParam = Rsamtools::ScanBamParam(
         which = sbgr,
-        what = c("rname", "strand", "pos", "qwidth", "cigar"), ...)
+        what = c("rname", "strand", "pos", "qwidth", "cigar"),
+        ...
+    )
     bam_raw = Rsamtools::scanBam(bam_f, param = sbParam)
     bam_dt = lapply(bam_raw, function(x){
-        data.table(seqnames = x$rname, strand = x$strand,
-                   start = x$pos, width = x$qwidth, cigar = x$cigar)
+        data.table::data.table(seqnames = x$rname,
+                               strand = x$strand,
+                               start = x$pos,
+                               width = x$qwidth,
+                               cigar = x$cigar)
     })
     bam_dt = data.table::rbindlist(bam_dt,
                                    use.names = TRUE,
@@ -35,23 +94,9 @@ fetchStrands = function(bam_f,
     bam_dt[, end := start + width - 1L]
 
     if(max_dupes < Inf){
-        bam_dt = seqsetvis:::.rm_dupes(bam_dt, max_dupes)
+        bam_dt = .remove_duplicates(bam_dt, max_dupes)
     }
     bam_dt
-    #     # bam_dt[, end := start + width - 1L]
-    #     bam_dt[strand == "+", end := start + as.integer(fragLen) - 1L]
-    #     bam_dt[strand == "-", start := end - as.integer(fragLen) + 1L]
-    #
-    #
-    # ext_cov = coverage(split(GRanges(bam_dt), bam_dt$which_label))
-    # score_gr = GRanges(ext_cov)
-    # if(target_strand == "+"){
-    #     strand(score_gr) = "+"
-    # }
-    # if(target_strand == "-"){
-    #     strand(score_gr) = "-"
-    # }
-    # return(score_gr)
 }
 
 #' Title
@@ -71,6 +116,109 @@ strandsExtend = function(reads_dt, fragLen){
 
 #' Title
 #'
+#' @param score_dt
+#' @param window_size
+#' @param anchor
+#'
+#' @return
+#'
+#' @examples
+.shift_anchor = function(score_dt, window_size, anchor){
+    x = id = NULL
+    shift = round(window_size/2)
+    switch(anchor,
+           center = {
+               score_dt[, x := start - min(start) + shift, by = id]
+               score_dt[, x := x - round(mean(x)), by = id]
+               score_dt[strand == "-", x := -1*x]
+           },
+           center_unstranded = {
+               score_dt[, x := start - min(start) + shift, by = id]
+               score_dt[, x := x - round(mean(x)), by = id]
+           },
+           left = {
+               score_dt[, x := -1]
+               score_dt[strand != "-", x := start - min(start) + shift,
+                        by = id]
+               #flip negative
+               score_dt[strand == "-", x := -1*(end - max(end) - shift),
+                        by = id]
+           },
+           left_unstranded = {
+               score_dt[, x := start - min(start) + shift, by = id]
+           }
+    )
+
+    score_dt[, start := start - shift + 1]
+    score_dt[, end := end + window_size - shift]
+    return(score_dt)
+}
+
+#' Title
+#'
+#' @param score_gr
+#' @param qgr
+#' @param window_size
+#' @param anchor
+#'
+#' @return
+#' @export
+#'
+#' @examples
+viewGRangesWinSample_dt = function(score_gr, qgr, window_size,
+                                   anchor = c("center", "center_unstranded",
+                                              "left", "left_unstranded")[1]){
+    #reserve bindings for data.table
+    x = id = queryHits = NULL
+    stopifnot(class(score_gr) == "GRanges")
+    stopifnot(!is.null(score_gr$score))
+    stopifnot(class(qgr) == "GRanges")
+    stopifnot(is.numeric(window_size))
+    stopifnot(window_size >= 1)
+    stopifnot(window_size %% 1 == 0)
+    stopifnot(anchor %in% c("center", "center_unstranded",
+                            "left", "left_unstranded"))
+    if (is.null(qgr$id)) {
+        if (is.null(names(qgr))) {
+            names(qgr) = paste0("region_", seq_along(qgr))
+        }
+        qgr$id = names(qgr)
+    }
+    windows = slidingWindows(qgr, width = window_size, step = window_size)
+
+    # names(windows) = qgr$id
+    # windows's handling of names seems to have changed and now every nest
+    # GRanges has parent's name
+    names(windows) = NULL
+    windows = unlist(windows)
+    windows$id = names(windows)
+    windows = resize(windows, width = 1, fix = "center")
+    olaps = suppressWarnings(data.table::as.data.table(
+        findOverlaps(query = windows,
+                     subject = score_gr,
+                     ignore.strand = TRUE)
+    ))
+    # patch up missing/out of bound data with 0
+    missing_idx = setdiff(seq_along(windows), olaps$queryHits)
+    if (length(missing_idx) > 0) {
+        olaps = rbind(olaps, data.table::data.table(
+            queryHits = missing_idx,
+            subjectHits = length(score_gr) + 1))[order(queryHits)]
+        suppressWarnings({
+            score_gr = c(score_gr,
+                         GRanges("chrPatchZero",
+                                 IRanges::IRanges(1, 1), score = 0))
+        })
+    }
+    # set y and output windows = windows[olaps$queryHits]
+    windows$y = score_gr[olaps$subjectHits]$score
+    score_dt = data.table::as.data.table(windows)
+
+    return(.shift_anchor(score_dt, window_size, anchor))
+}
+
+#' Title
+#'
 #' @param bam_dt
 #' @param qgr
 #' @param win_size
@@ -80,13 +228,13 @@ strandsExtend = function(reads_dt, fragLen){
 #' @import GenomicRanges
 #' @examples
 strandsCoverage = function(bam_dt, qgr, win_size = 1){
-    ext_cov = GenomicRanges::coverage(split(GRanges(bam_dt[strand == "+"]), bam_dt$which_label))
-    score_gr = GRanges(ext_cov)
+    ext_cov = GenomicRanges::coverage(GenomicRanges::split(GenomicRanges::GRanges(bam_dt[strand == "+"]), bam_dt$which_label))
+    score_gr = GenomicRanges::GRanges(ext_cov)
     pos_dt = viewGRangesWinSample_dt(score_gr, qgr, win_size)
     pos_dt$strand = "+"
 
-    ext_cov = GenomicRanges::coverage(split(GRanges(bam_dt[strand == "-"]), bam_dt$which_label))
-    score_gr = GRanges(ext_cov)
+    ext_cov = GenomicRanges::coverage(GenomicRanges::split(GenomicRanges::GRanges(bam_dt[strand == "-"]), bam_dt$which_label))
+    score_gr = GenomicRanges::GRanges(ext_cov)
     neg_dt = viewGRangesWinSample_dt(score_gr, qgr, win_size)
     neg_dt$strand = "-"
 
@@ -103,6 +251,7 @@ strandsCoverage = function(bam_dt, qgr, win_size = 1){
 #' @return
 #' @export
 #' @rawNamespace import(data.table, except = c(shift, first, last, second))
+#' @importFrom stats cor
 #' @examples
 calcStrandCorr = function(reads_dt, qgr, fragLen = NA, win_size = 1){
     if(!is.na(fragLen)){
@@ -115,225 +264,14 @@ calcStrandCorr = function(reads_dt, qgr, fragLen = NA, win_size = 1){
     dc_dt
 }
 
-#' Title
-#'
-#' @param bam_file
-#' @param qgr
-#' @param nbest
-#' @param revbest
-#' @param qual_metric
-#' @param max_dupes
-#' @param shift_min
-#' @param shift_max
-#' @param step
-#' @param include_plots
-#'
-#' @return
-#' @export
-#' @import pbapply
-#' @import ggplot2
-#' @examples
-ssvCrossCorr = function(bam_file, qgr, nbest = 20, revbest = FALSE,
-                        qual_metric = "qValue", max_dupes = 1,
-                        shift_min = 0, shift_max = 250,
-                        step = 10, include_plots = TRUE){
-    # browser()
-    if(is.na(nbest)){
-        test_gr = qgr
-    }else{
-        test_gr = qgr[order(mcols(qgr)[[qual_metric]], decreasing = !revbest)][seq_len(min(nbest, length(qgr)))]
-    }
-    if(is.null(names(test_gr))){
-        names(test_gr) = test_gr$id
-    }
 
-    message("fetch reads...")
-    # browser()
-    reads_dt = fetchStrands(bam_file, test_gr, max_dupes = max_dupes)
-
-    tab = table(reads_dt$width)
-    read_length = as.numeric(names(tab[which(tab == max(tab))]))
-    # reads_dt = strandsExtend(reads_dt, 50)
-    message("correlate coarse...")
-
-    reads_dt$shiftn = 0
-    reads_dt[ strand == "-", c("start", "end") := .(start + width, end + width)]
-    corrVals = pbapply::pblapply(
-        seq(from = shift_min, to = shift_max, by = step),
-        function(shiftLen){
-            ###TODO HERE
-            # if(shiftLen == 100) browser()
-            reads_dt[strand == "+", shiftn := shiftLen ]
-            dc_dt = calcStrandCorr(reads_dt[, .(which_label,
-                                                seqnames,
-                                                start = start + shiftn, end = end + shiftn,
-                                                strand)],
-                                   test_gr, fragLen = NA, win_size = 1)
-            cov_dt = strandsCoverage(reads_dt[, .(which_label,
-                                                  seqnames,
-                                                  start = start + shiftn, end = end + shiftn,
-                                                  strand)], test_gr, 1)
-            ggplot(cov_dt, aes(x = x, y = y, color = strand)) + geom_path() + facet_wrap("id")
-            dc_dt$shiftLen = shiftLen
-            dc_dt
-        })
-    rbindlist(corrVals)
-}
-
-
-#' Title
-#'
-#' @param bam_file
-#' @param qgr
-#' @param nbest
-#' @param qual_metric
-#' @param max_dupes
-#' @param frag_min
-#' @param frag_max
-#' @param step
-#' @param include_plots
-#'
-#' @return
-#' @export
-#' @import pbapply
-#' @examples
-ssvStrandCorr = function(bam_file, qgr, nbest = 20,
-                         qual_metric = "qValue", max_dupes = 1,
-                         frag_min = 50, frag_max = 250,
-                         step = 10, small_step = 1, include_plots = TRUE){
-    if(is.na(nbest)){
-        test_gr = qgr
-    }else{
-        test_gr = qgr[order(mcols(qgr)[[qual_metric]], decreasing = TRUE)][seq_len(min(nbest, length(qgr)))]
-    }
-    if(is.null(test_gr$id)){
-        test_gr$id = paste0("peak_", seq_along(test_gr))
-    }
-    if(is.null(names(test_gr))){
-        names(test_gr) = test_gr$id
-    }
-    # browser()
-    message("fetch reads...")
-    reads_dt = fetchStrands(bam_file, test_gr, max_dupes = max_dupes)
-
-    cnt_dt = reads_dt[, .N, by = .(which_label)]
-    test_dt = data.table(which_label = as.character(test_gr), id = test_gr$id)
-    cnt_dt = merge(cnt_dt, test_dt, all = TRUE)
-    cnt_dt[is.na(N), N := 0]
-    cnt_dt = cnt_dt[, .(id, count = N)]
-
-    read_corr = calcStrandCorr(reads_dt, test_gr)
-    read_coverage = strandsCoverage(reads_dt, test_gr)
-
-    tab = table(reads_dt$width)
-    read_length = as.numeric(names(tab[which(tab == max(tab))]))
-    message("correlate coarse...")
-    corrVals = pbapply::pblapply(seq(from = frag_min, to = frag_max, by = step), function(fragLen){
-        dc_dt = calcStrandCorr(reads_dt, test_gr, fragLen)
-        dc_dt$fragLen = fragLen
-        dc_dt
-    })
-
-    corrVals = data.table::rbindlist(corrVals)
-
-    # corrVals$crank = NULL
-    corrVals[, crank := rank(-corr), by = .(id)]
-    center = round(mean(corrVals[crank < 2 & !is.na(corr)]$fragLen))
-    message("correlate fine...")
-    corrValsDetail = pbapply::pblapply(seq(from = center-step, to = center+step, by = small_step), function(fragLen){
-        dc_dt = calcStrandCorr(reads_dt, test_gr, fragLen)
-        dc_dt$fragLen = fragLen
-        dc_dt
-    })
-    corrValsDetail = rbindlist(corrValsDetail)
-    corrValsDetail[, crank := rank(-corr), by = .(id)]
-    corrValsDetail[crank == 1]
-    bestFragLen = round(mean(corrValsDetail[crank < 2]$fragLen))
-
-    frag_corr = corrValsDetail[fragLen == bestFragLen, 1:2]
-
-    if(include_plots){
-        tp = sample(unique(corrVals$id), min(12, length(test_gr)))
-        message("plot sampled regions...")
-        p = ggplot(corrVals[id %in% tp], aes(x = fragLen, y = corr, group = id)) + geom_path() +
-            geom_path(data = corrValsDetail[id %in% tp], color = "red") + facet_wrap("id") +
-            geom_point(data = corrValsDetail[id %in% tp][crank == 1], color = "red")
-        out = list(
-            read_length = read_length,
-            frag_length = bestFragLen,
-            read_corr = read_corr,
-            frag_corr = frag_corr,
-            count = cnt_dt,
-            sample_plot = p
-        )
-    }else{
-        out = list(
-            read_length = read_length,
-            frag_length = bestFragLen,
-            read_corr = read_corr,
-            frag_corr = frag_corr,
-            count = cnt_dt
-        )
-    }
-    return(out)
-}
-
-#' Title
-#'
-#' @param bam_file
-#' @param qgr
-#' @param fragLen
-#' @param qual_metric
-#' @param max_dupes
-#' @param ncores
-#'
-#' @return
-#' @export
-#'
-#' @examples
-ssvStrandCorrFull = function(bam_file, qgr, fragLen,
-                             qual_metric = "id",
-                             max_dupes = 1, ncores = 1, output_withGRanges = TRUE){
-    # browser()
-    options(mc.cores = ncores)
-    assignments = ceiling(seq_along(qgr) / (length(qgr)/ncores))
-    cres = mclapply(seq_len(ncores), function(i){
-
-        ssvStrandCorr(bam_file,
-                      qgr[assignments == i],
-                      nbest = NA,
-                      step = 0,
-                      qual_metric = qual_metric,
-                      max_dupes = max_dupes,
-                      frag_min = fragLen,
-                      frag_max = fragLen,
-                      include_plots = FALSE
-        )
-    })
-    out = list(
-        read_corr =
-            rbindlist(lapply(cres, function(x)x$read_corr)),
-        frag_corr =
-            rbindlist(lapply(cres, function(x)x$frag_corr)),
-        count =
-            rbindlist(lapply(cres, function(x)x$count))
-    )
-    colnames(out$read_corr)[2] = "read_corr"
-    colnames(out$frag_corr)[2] = "frag_corr"
-    out = merge(merge(out$read_corr, out$frag_corr), out$count)
-    if(output_withGRanges){
-        out = GRanges(merge(out, qgr, by = "id"))
-    }
-    return(out)
-
-}
 
 
 
 #
 # tgr = GRanges(c("chr1", "chr6"), IRanges(c(1e6, 2e6), c(10e6, 16e6)), qValue = 1:2, id = paste("reg", 1:2))
 # names(tgr) = tgr$id
-# bigcorr_res = ssvStrandCorr(bam_file, tgr, frag_min = 1, frag_max = 600)
+# bigcorr_res = crossCorrByExtension(bam_file, tgr, frag_min = 1, frag_max = 600)
 # bigcorr_res
 #
 # qgr = qgr[1:1600]
@@ -348,20 +286,34 @@ ssvStrandCorrFull = function(bam_file, qgr, fragLen,
 # print(nc)
 # nam = paste("nc", nc)
 # st_times[[nam]] = system.time({
-#     st_res[[nam]] = ssvStrandCorrFull(bam_file, qgr, fragLen = corr_res$frag_length, ncores = nc)
+#     st_res[[nam]] = crossCorrByExtensionFull(bam_file, qgr, fragLen = corr_res$frag_length, ncores = nc)
 # })
 # # }
 
+#' Title
+#'
+#' @param bam_file
+#' @param qgr
+#' @param fl
+#' @param rl
+#' @param roi
+#'
+#' @return
+#' @export
+#'
+#' @examples
 eval_fragvsread = function(bam_file, qgr, fl, rl, roi){
-    bdt = ssvRecipes::myFetchStrandedBam(bam_file, qgr[roi], fragLens = NA, max_dupes = 1)
+    bdt = .fetch_bam_stranded(bam_file, qgr[roi], max_dupes = 1)
     p1 = ggplot(bdt, aes(x = x, y = y, color = strand)) + geom_path() +
         facet_wrap("id")
 
-    bdt = ssvRecipes::myFetchStrandedBam(bam_file, qgr[roi], fragLens = fl, max_dupes = 1)
+    bdt = .fetch_bam_stranded(bam_file, qgr[roi], max_dupes = 1)
+    strandsExtend(bdt, fl)
     p2 = ggplot(bdt, aes(x = x, y = y, color = strand)) + geom_path() +
         facet_wrap("id")
 
-    cowplot::plot_grid(p1 + labs(title = paste0("reads (", rl, ")")),
-                       p2 + labs(title = paste0("fragments (", fl, ")"))
-    )
+    return(list(
+        read_ext = p1 + labs(title = paste0("reads (", rl, ")")),
+        fragment_ext = p2 + labs(title = paste0("fragments (", fl, ")"))
+    ))
 }

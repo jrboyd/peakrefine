@@ -2,7 +2,7 @@
 # biocLite("PWMEnrich")
 # biocLite("PWMEnrich.Hsapiens.background")
 # biocLite("BSgenome.Hsapiens.UCSC.hg38")
-setwd("~/R/peakrefine/")
+
 library(PWMEnrich)
 library(PWMEnrich.Hsapiens.background)
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -20,17 +20,39 @@ ncores = 32
 registerCoresPWMEnrich(ncores)
 useBigMemoryPWMEnrich(TRUE)
 
+
+# setwd(rdir)
+# qgr = easyLoad_narrowPeak("MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks.narrowPeak")[[1]]
+# bam_file = file.path(rdir, "MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam")
+# bam_input = file.path(rdir, "MCF10A_input_pooled/MCF10A_input_pooled.bam")
+# todo_fl = c(50, 65, 100, 150, 195, 200, 205, 215, 230, 260, 300)
+# id_oi = unique(names(PWMLogn.hg19.MotifDb.Hsap$pwms))
+# id_oi = id_oi[grepl("CTCF", id_oi)]
+# gray_fl = 100
+# red_fl = 205
+# out_pref = "AF_MCF10A_CTCF"
+
+grepPWM = function(regex, pwm){
+    names(pwm$pwms)[grepl("CTCF", names(pwm$pwms))]
+}
+
+myPWM = PWMLogn.hg19.MotifDb.Hsap
+
 rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/"
 setwd(rdir)
-qgr = easyLoad_narrowPeak("MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks.narrowPeak")[[1]]
-bam_file = file.path(rdir, "MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam")
-bam_input = file.path(rdir, "MCF10A_input_pooled/MCF10A_input_pooled.bam")
-todo_fl = c(50, 65, 100, 150, 195, 200, 205, 215, 230, 260, 300)
-id_oi = unique(names(PWMLogn.hg19.MotifDb.Hsap$pwms))
-id_oi = id_oi[grepl("CTCF", id_oi)]
-gray_fl = 100
-red_fl = 205
-pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
+pr_10a_ctcf = PeakRefiner(peak_set = rtracklayer::import("MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks.narrowPeak", format = "narrowPeak"),
+                          bam_treat_file = file.path(rdir, "MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam"),
+                          bam_input_file = file.path(rdir, "MCF10A_input_pooled/MCF10A_input_pooled.bam"),
+                          pwm = PWMLogn.hg19.MotifDb.Hsap,
+                          target_pwm_names = grepPWM("CTCF", myPWM),
+                          fragment_lengths = c(50, 65, 100, 150, 195, 200, 205, 215, 230, 260, 300),
+                          color_overrides = c("100" = "gray", "205" = "red"),
+                          output_prefix = "AF_MCF10A_CTCF")
+setwd("~/R/peakrefine/")
+load("cache/MCF10A_CTCF_pooled/cache_motif_res_200nbases_51679seq.save")
+ScoreMotif = function(pr){
+score_motif(pr@bam_treat_file, pr@bam_input_file, qgr = pr@peak_set, fl = pr@fragment_lengths[1], pwm = pr@pwm, out_dir = file.path("cache", pr@output_prefix), motif_res = motif_res)
+}
 
 # rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/"
 # setwd(rdir)
@@ -42,7 +64,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # id_oi = id_oi[grepl("CTCF", id_oi)]
 # gray_fl = 100
 # red_fl = 205
-# pdf_name = "AF_MCF10CA1_CTCF_metrics.pdf"
+# out_pref = "AF_MCF10CA1_CTCF"
 
 # rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_MCF7_ESR1_enhancers"
 # setwd(rdir)
@@ -54,7 +76,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # id_oi = id_oi[grepl("ESR[1A]", id_oi)]
 # gray_fl = 37
 # red_fl = 100
-# pdf_name = "ESR1_carroll_metrics.pdf"
+# out_pref = "ESR1_carroll"
 
 # rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/"
 # setwd(rdir)
@@ -65,7 +87,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # id_oi = c("Hsapiens-jolma2013-RUNX2-3")
 # gray_fl = 100
 # red_fl = 150
-# pdf_name = "JR_Runx1-mitotic_metrics.pdf"
+# out_pref = "JR_Runx1-mitotic"
 
 ##AF RUNX1
 # rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_RUNX1_ChIP/"
@@ -77,7 +99,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # id_oi = c("Hsapiens-jolma2013-RUNX2-3")
 # gray_fl = 65
 # red_fl = 175
-# pdf_name = "AF_MCF10A-Runx1_metrics.pdf"
+# out_pref = "AF_MCF10A-Runx1"
 
 # rdir = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_RUNX1_ChIP/"
 # setwd(rdir)
@@ -88,7 +110,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # gray_fl = 65
 # red_fl = 150
 # id_oi = c("Hsapiens-jolma2013-RUNX2-3")
-# pdf_name = "AF_MCF10CA1a-Runx1_metrics.pdf"
+# out_pref = "AF_MCF10CA1a-Runx1"
 
 # bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_Runx2_pooled/MDA231_Runx2_pooled.bam"
 # bam_input = "/slipstream/galaxy/uploads/working/qc_framework/output_MK_MDA231_Runx/MDA231_input_pooled/MDA231_input_pooled.bam"
@@ -97,7 +119,7 @@ pdf_name = "AF_MCF10A_CTCF_metrics.pdf"
 # gray_fl = 150
 # red_fl = 200
 # id_oi = c("Hsapiens-jolma2013-RUNX2-3")
-# pdf_name = "MK_MDA231-Runx2_metrics.pdf"
+# out_pref = "MK_MDA231-Runx2"
 
 
 qgr = subset(qgr, seqnames(qgr) != "chrU13369.1")

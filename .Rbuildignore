@@ -1,2 +1,15 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.travis\.yml$
+^\.git$
+\.gitignore$
+^codecov\.yml$
+^run_cov.R$
+^dev_data$
+^dev_.+$
+^results$
+^cache$
+jaspar$
+png$
+pdf$
+\.bu$

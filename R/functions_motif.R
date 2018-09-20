@@ -1,18 +1,3 @@
-# # source("https://bioconductor.org/biocLite.R")
-# # biocLite("PWMEnrich")
-# # biocLite("PWMEnrich.Hsapiens.background")
-# # biocLite("BSgenome.Hsapiens.UCSC.hg38")
-# setwd("~/R/peakrefine/")
-# library(PWMEnrich)
-# library(PWMEnrich.Hsapiens.background)
-# library(BSgenome.Hsapiens.UCSC.hg38)
-# library(BSgenome)
-#
-# library(seqsetvis)
-# library(data.table)
-# library(peakrefine)
-# data("PWMLogn.hg19.MotifDb.Hsap")
-
 #' Calculate a large motif enrichment once for later rounds of
 #' subsetting and analysis
 #'
@@ -228,6 +213,8 @@ score_motif = function(bam_file, bam_input, qgr, fl, motif_res = NULL,
 #'
 #' @return
 #' @export
+#'
+#' @importFrom stats pchisq qlnorm
 #'
 #' @examples
 subset_MotifEnrichmentResults = function(me_res, k){

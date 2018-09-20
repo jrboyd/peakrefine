@@ -5,7 +5,8 @@
 \title{HiC_matrix constructor}
 \usage{
 PeakRefiner(peak_set, bam_treat_file, bam_input_file, pwm,
-  fragment_lengths = NULL, output_prefix = NULL)
+  target_pwm_names, fragment_lengths = NULL, color_overrides = NULL,
+  auto_frag_len_FUN = NULL, output_prefix = NULL)
 }
 \arguments{
 \item{matrix_file}{HiC-Pro matrix file}
