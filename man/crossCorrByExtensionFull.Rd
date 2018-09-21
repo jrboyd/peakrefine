@@ -2,14 +2,36 @@
 % Please edit documentation in R/functions_crossCorrExtension.R
 \name{crossCorrByExtensionFull}
 \alias{crossCorrByExtensionFull}
-\title{Title}
+\title{Measure cross correlation using specified frag_len for all regions}
 \usage{
-crossCorrByExtensionFull(bam_file, qgr, fragLen, qual_metric = "id",
-  max_dupes = 1, ncores = 1, output_withGRanges = TRUE)
+crossCorrByExtensionFull(bam_file, query_gr, frag_len, max_dupes = 1,
+  ncores = 1, output_withGRanges = TRUE)
 }
 \arguments{
-\item{ncores}{}
+\item{bam_file}{character. Path to .bam file, must have index at .bam.bai.}
+
+\item{query_gr}{GRanges.  Regions to calculate cross correlation for.}
+
+\item{frag_len}{integer. Fragment length to calculate cross correlation for.}
+
+\item{max_dupes}{integer.  Duplicate reads above this value will be removed.}
+
+\item{ncores}{integer.  ncores to use to split up the cross correlation
+calculation.}
+
+\item{output_withGRanges}{logical.  Should results be merged back into
+query_gr? If TRUE output is GRanges. If FALSE output is data.table.}
+}
+\value{
+Either a GRanges equivalent to query_gr with added columns for
+  correlation metics or a data.table of metrics.
 }
 \description{
-Title
+Measure cross correlation using specified frag_len for all regions
+}
+\examples{
+bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
+np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
+qgr = rtracklayer::import(np, format = "narrowPeak")
+crossCorrByExtensionFull(bam_file, qgr[1:2], frag_len = 150, ncores = 2)
 }

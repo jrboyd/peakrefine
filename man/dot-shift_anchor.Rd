@@ -2,16 +2,41 @@
 % Please edit documentation in R/functions_calc_fragLen.R
 \name{.shift_anchor}
 \alias{.shift_anchor}
-\title{Title}
+\title{applies an anchor which controls x coordinate system 1) should 0 on the
+x-axis be on the left or in the center? 2) should - strand signal be flipped?}
 \usage{
 .shift_anchor(score_dt, window_size, anchor)
 }
 \arguments{
-\item{anchor}{}
+\item{score_dt}{data.table, mandatory columns are start, end, and id.  strand
+is also mandatory if not anchoring *_unstranded.}
+
+\item{window_size}{the window size at which score was calculated/retrieved}
+
+\item{anchor}{character, one of center, center_unstranded, left,
+left_unstranded.}
 }
 \value{
-
+data.table with x added according to anchor
 }
 \description{
-Title
+applies an anchor which controls x coordinate system 1) should 0 on the
+x-axis be on the left or in the center? 2) should - strand signal be flipped?
+}
+\examples{
+library(GenomicRanges)
+bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
+bam_input = system.file("extdata", "MCF10A_input.random5.bam", package = "peakrefine")
+np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
+qgr = rtracklayer::import(np, format = "narrowPeak")
+strand(qgr) = c("+", "-", "-", "+", "-")
+
+reads_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
+ext_cov = GenomicRanges::coverage(GenomicRanges::split(
+    GenomicRanges::GRanges(reads_dt[strand == "+"]), reads_dt$which_label))
+score_gr = GenomicRanges::GRanges(ext_cov)
+bam_dt = peakrefine::.view_gr_by_window_sample(score_gr, qgr, 1,
+                                 anchor = "center_unstranded")
+peakrefine:::.shift_anchor(bam_dt, 1, "center_unstranded")
+
 }

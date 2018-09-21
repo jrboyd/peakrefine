@@ -10,6 +10,7 @@
 ^results$
 ^cache$
 jaspar$
-png$
-pdf$
+\.png$
+\.pdf$
 \.bu$
+\.save$

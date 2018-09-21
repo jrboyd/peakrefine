@@ -2,15 +2,44 @@
 % Please edit documentation in R/functions_crossCorrExtension.R
 \name{crossCorrByExtension}
 \alias{crossCorrByExtension}
-\title{Title}
+\title{Calculate cross correlation by extending reads}
 \usage{
-crossCorrByExtension(bam_file, qgr, nbest = 20, qual_metric = "qValue",
-  max_dupes = 1, frag_min = 50, frag_max = 250, step = 10,
-  small_step = 1, include_plots = TRUE)
+crossCorrByExtension(bam_file, query_gr, n_regions = 20, max_dupes = 1,
+  frag_min = 50, frag_max = 250, step = 10, small_step = 1,
+  include_plots = TRUE)
 }
 \arguments{
-\item{include_plots}{}
+\item{bam_file}{character. Path to .bam file, must have index at .bam.bai.}
+
+\item{query_gr}{GRanges.  Regions to calculate cross correlation for.}
+
+\item{n_regions}{integer.  query_gr will be downsampled to this many regions
+for speed. Use NA to skip downsampling.}
+
+\item{max_dupes}{integer.  Duplicate reads above this value will be removed.}
+
+\item{frag_min}{integer.  extension value to start at.}
+
+\item{frag_max}{integer. extension value to end at.}
+
+\item{step}{integer.  proceed from frag_min measuring correlation every step.}
+
+\item{small_step}{integer.  after measuring correlation every step, a second
+round of fragment size refinement is done using small_step within +/- step
+of maximum.}
+
+\item{include_plots}{logical. Should plots be included in output?}
+}
+\value{
+named list of results
 }
 \description{
-Title
+Calculate cross correlation by extending reads
+}
+\examples{
+bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
+np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
+qgr = rtracklayer::import(np, format = "narrowPeak")
+crossCorrByExtension(bam_file, qgr[1:2], frag_min = 50,
+frag_max = 250, step = 50, small_step = 10)
 }

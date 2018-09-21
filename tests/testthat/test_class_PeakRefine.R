@@ -24,7 +24,8 @@ test_that("PeakRefiner init", {
 })
 
 test_that("PeakRefiner constructor", {
-    pr = PeakRefiner(np, bam_file, bam_input, fragment_lengths = c(50, 200), pwm = PWMLogn.hg19.MotifDb.Hsap, target_pwm_names = "CTCF")
+    pr = PeakRefiner(np, bam_file, bam_input, fragment_lengths = c(50, 200),
+                     pwm = PWMLogn.hg19.MotifDb.Hsap, target_pwm_names = "CTCF")
     expect_s4_class(pr, "PeakRefiner")
     expect_equal(pr@bam_treat_file, bam_file)
     expect_equal(pr@bam_input_file, bam_input)

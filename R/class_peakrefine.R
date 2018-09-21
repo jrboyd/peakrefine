@@ -4,7 +4,7 @@
 
 .datatable.aware = TRUE
 
-#' Title
+#' class to handle peak refinement
 #'
 #' @slot peak_set GRanges.
 #' @slot bam_treat_file character.
@@ -15,13 +15,10 @@
 #' @slot output_prefix character.
 #' @slot plots list.
 #'
-#' @return
 #' @export
 #' @importClassesFrom  PWMEnrich PWMLognBackground
 #' @importClassesFrom  GenomicRanges GRanges
 #' @import PWMEnrich
-#'
-#' @examples
 setClass(Class = "PeakRefiner",
 
          slots = c(
@@ -52,16 +49,13 @@ setClass(Class = "PeakRefiner",
          }
 )
 
-#' Title
+#' initialize a new PeakRefiner
 #'
-#' @param PeakRefiner
+#' @param PeakRefiner empty PeakRefiner
 #'
-#' @return
-#' @export
+#' @return valid PeakRefiner
 #'
 #' @importFrom methods validObject
-#'
-#' @examples
 setMethod("initialize", "PeakRefiner", function(.Object,
                                                 peak_set,
                                                 bam_treat_file,
@@ -70,6 +64,7 @@ setMethod("initialize", "PeakRefiner", function(.Object,
                                                 target_pwm_names,
                                                 fragment_lengths = NULL,
                                                 color_overrides = NULL,
+                                                color_default = "black",
                                                 auto_frag_len_FUN = NULL,
                                                 output_prefix = NULL) {
     # if(missing(matrix_file) & missing(regions_file) & missing(parameters)){
@@ -106,7 +101,7 @@ setMethod("initialize", "PeakRefiner", function(.Object,
                  subtitle = paste("read length:", sc$read_length,
                                   "\nfragment length:", sc$frag_length))
     }else{
-        fl2color = rep("black", length(fragment_lengths))
+        fl2color = rep(color_default, length(fragment_lengths))
         names(fl2color) = fragment_lengths
         if(!is.null(color_overrides)){
             fl2color[names(color_overrides)] = color_overrides
@@ -127,18 +122,40 @@ setMethod("initialize", "PeakRefiner", function(.Object,
 
 })
 
-#' HiC_matrix constructor
+
+
+#' constructor for PeakRefiner
 #'
-#' @param matrix_file HiC-Pro matrix file
-#' @param regions_file HiC-Pro region bed file matching matrix file
-#' @param parameters HiC_parameters object
+#' @param peak_set GRanges formatted peak set to calculate motifs on
+#' @param bam_treat_file .bam file of aligned reads from ChIP-seq pulldown.
+#'   Index must be at .bam.bai
+#' @param bam_input_file .bam file of aligned reads from input control. Index
+#'   must be at .bam.bai
+#' @param pwm Position Weight Matrix from PWMEnrich
+#' @param target_pwm_names names of PWMs to include in figures by default
+#' @param fragment_lengths fragment lengths to consider
+#' @param color_overrides character. colors to use for each item in
+#'   fragment_lengths.  should contain valid hex ("#000000") or R colors
+#'   ("black") and be named with items in fragment_lengths.  non-overriden items
+#'   will be black.
+#' @param color_default single character. black.
+#' @param auto_frag_len_FUN function to use to auto calculate fragment length.
+#'   must accept two argument, bam_file and peak_set.
+#' @param output_prefix prefix to use for output files.
 #'
-#' @return
+#' @return a new valid object of class PeakRefiner
 #' @export
-#'
 #' @importFrom methods new
-#'
 #' @examples
+#' bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
+#' bam_input = system.file("extdata", "MCF10A_input.random5.bam", package = "peakrefine")
+#' np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
+#' qgr = rtracklayer::import(np, format = "narrowPeak")
+#'
+#' library(PWMEnrich.Hsapiens.background)
+#' data("PWMLogn.hg19.MotifDb.Hsap")
+#' pwm = PWMLogn.hg19.MotifDb.Hsap[1:2]
+#' PeakRefiner(qgr, bam_file, bam_input, pwm, names(pwm$pwms)[1])
 PeakRefiner = function(peak_set,
                        bam_treat_file,
                        bam_input_file,
@@ -146,6 +163,7 @@ PeakRefiner = function(peak_set,
                        target_pwm_names,
                        fragment_lengths = NULL,
                        color_overrides = NULL,
+                       color_default = "black",
                        auto_frag_len_FUN = NULL,
                        output_prefix = NULL){
     new("PeakRefiner",
@@ -156,6 +174,7 @@ PeakRefiner = function(peak_set,
         target_pwm_names = target_pwm_names,
         fragment_lengths = fragment_lengths,
         color_overrides = color_overrides,
+        color_default = color_default,
         auto_frag_len_FUN = auto_frag_len_FUN,
         output_prefix = output_prefix)
 }

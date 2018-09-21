@@ -1,5 +1,5 @@
 #test by test file
-library(seqsetvis)
+library(peakrefine)
 for(f in dir("tests/testthat/", pattern = "test", full.names = TRUE)){
     print(f)
     testthat::test_file(f, reporter = testthat::RstudioReporter)

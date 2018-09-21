@@ -4,13 +4,13 @@
 \alias{.fetch_bam_stranded}
 \title{.fetch_bam_stranded}
 \usage{
-.fetch_bam_stranded(bam_f, qgr, max_dupes = Inf, ...)
+.fetch_bam_stranded(bam_f, query_gr, max_dupes = Inf, ...)
 }
 \arguments{
 \item{bam_f}{character. a .bam file, must have index file in same directory:
 .bam.bai}
 
-\item{qgr}{GRanges, regions to retrieve reads for.}
+\item{query_gr}{GRanges, regions to retrieve reads for.}
 
 \item{max_dupes}{numeric, maximum positional duplicates allowed.  See
 \code{\link{.remove_duplicates}}}
@@ -20,7 +20,7 @@
 }
 \value{
 a tidy data.table of read pileup coverage from bam_f for regions in
-  qgr
+  query_gr
 }
 \description{
 .fetch_bam_stranded
@@ -32,7 +32,7 @@ bam_input = system.file("extdata",
   "MCF10A_input.random5.bam", package = "peakrefine")
 np = system.file("extdata",
   "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
-qgr = rtracklayer::import(np, format = "narrowPeak")
-.fetch_bam_stranded(bam_file, qgr)
+query_gr = rtracklayer::import(np, format = "narrowPeak")
+peakrefine:::.fetch_bam_stranded(bam_file, query_gr)
 
 }

@@ -9,3 +9,4 @@ tmp.reads_dt.save
 *.png
 R/*.bu
 tests/testthat/*bu
+dev_josh_motif.R

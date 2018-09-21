@@ -3,9 +3,9 @@
 \docType{class}
 \name{PeakRefiner-class}
 \alias{PeakRefiner-class}
-\title{Title}
+\title{class to handle peak refinement}
 \description{
-Title
+class to handle peak refinement
 }
 \section{Slots}{
 

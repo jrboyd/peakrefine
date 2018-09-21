@@ -3,16 +3,19 @@
 \docType{methods}
 \name{initialize,PeakRefiner-method}
 \alias{initialize,PeakRefiner-method}
-\title{Title}
+\title{initialize a new PeakRefiner}
 \usage{
 \S4method{initialize}{PeakRefiner}(.Object, peak_set, bam_treat_file,
   bam_input_file, pwm, target_pwm_names, fragment_lengths = NULL,
-  color_overrides = NULL, auto_frag_len_FUN = NULL,
-  output_prefix = NULL)
+  color_overrides = NULL, color_default = "black",
+  auto_frag_len_FUN = NULL, output_prefix = NULL)
 }
 \arguments{
-\item{PeakRefiner}{}
+\item{PeakRefiner}{empty PeakRefiner}
+}
+\value{
+valid PeakRefiner
 }
 \description{
-Title
+initialize a new PeakRefiner
 }
