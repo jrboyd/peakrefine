@@ -10,34 +10,36 @@ np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakref
 qgr = rtracklayer::import(np, format = "narrowPeak")
 strand(qgr) = c("+", "-", "-", "+", "-")
 
-bam_dt = .fetch_bam_stranded(bam_file, qgr)
+bam_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
 bam_gr = GRanges(coverage(S4Vectors::split(GRanges(bam_dt[strand == "+"]), bam_dt$which_label)))
 
+vgr = qgr
+end(vgr) = end(vgr) + 0:4*100
 
 test_that("viewGrangeWinSample_dt ids match input", {
     names(qgr) = paste0("peak_", seq_along(qgr))
-    sample_dt = .view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
+    sample_dt = peakrefine:::.view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
     expect_equal(sort(unique(names(qgr))), sort(unique(sample_dt$id)))
 })
 
 test_that("viewGrangeWinSample_dt unnamed qgr still creates id", {
     names(qgr) = NULL
-    sample_dt = .view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
+    sample_dt = peakrefine:::.view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
     expect_true(!is.null(sample_dt$id))
 })
 
 test_that("viewGrangeWinSample_dt ids match input", {
     names(qgr) = paste0("peak_", seq_along(qgr))
-    summary_dt = .view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
+    summary_dt = peakrefine:::.view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
     expect_equal(sort(unique(names(qgr))), sort(unique(summary_dt$id)))
 
     names(qgr) = seq_along(qgr)
-    summary_dt = .view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
+    summary_dt = peakrefine:::.view_gr_by_window_sample(bam_gr, qgr, window_size = 100)
     expect_equal(sort(unique(names(qgr))), sort(unique(summary_dt$id)))
 })
 
-test_that(".view_gr_by_window_sample sizes vary, viewGRangesWinSummary_dt don't", {
-    sample_dt = .view_gr_by_window_sample(bam_gr, vgr, window_size = 100, anchor = "left")
+test_that("peakrefine:::.view_gr_by_window_sample sizes vary, viewGRangesWinSummary_dt don't", {
+    sample_dt = peakrefine:::.view_gr_by_window_sample(bam_gr, vgr, window_size = 100, anchor = "left")
     expect_gt(length(unique(sample_dt[, .N, by = id]$N)), 1)
 })
 
@@ -68,8 +70,9 @@ test_that(".fetch_bam_stranded basic", {
 
 })
 
-# test_that(".calc_stranded_coverage basic", {
-#     bam_dt = .fetch_bam_stranded(bam_file, qgr)
-#     cov_dt = .calc_stranded_coverage(bam_dt, qgr)
-#     ggplot(cov_dt, aes(x = x , y = y, color = strand)) + geom_path() + facet_wrap("id")
-# })
+test_that(".calc_stranded_coverage basic", {
+    bam_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
+    cov_dt = peakrefine:::.calc_stranded_coverage(bam_dt, qgr)
+    p = ggplot(cov_dt, aes(x = x , y = y, color = id)) + geom_path() + facet_wrap("id")
+    expect_equal(1, 1)
+})
