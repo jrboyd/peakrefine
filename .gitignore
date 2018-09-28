@@ -10,3 +10,4 @@ tmp.reads_dt.save
 R/*.bu
 tests/testthat/*bu
 dev_josh_motif.R
+*.save

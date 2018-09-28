@@ -25,8 +25,8 @@ Calculate coverage per strand
 bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
 np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
 qgr = rtracklayer::import(np, format = "narrowPeak")
-bam_dt = .fetch_bam_stranded(bam_file, qgr)
-cov_dt = .calc_stranded_coverage(bam_dt, qgr)
+bam_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
+cov_dt = peakrefine:::.calc_stranded_coverage(bam_dt, qgr)
 
 
 }

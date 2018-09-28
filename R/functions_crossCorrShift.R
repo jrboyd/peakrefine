@@ -29,6 +29,7 @@ crossCorrByShift = function(bam_file,
                             max_dupes = 1,
                             frag_min = 0, frag_max = 250,
                             step = 10, small_step = 1, include_plots = TRUE){
+    which_label = x = y = shiftn = NULL #reserve for data.table
     stopifnot(is.numeric(n_regions))
     stopifnot(n_regions >= 1)
     if(is.na(n_regions) || n_regions >= length(query_gr)){
@@ -53,19 +54,19 @@ crossCorrByShift = function(bam_file,
     message("correlate coarse...")
 
     reads_dt$shiftn = 0
-    reads_dt[ strand == "-", c("start", "end") := .(start + width, end + width)]
+    reads_dt[ strand == "-", c("start", "end") := list(start + width, end + width)]
     corrVals = pbapply::pblapply(
         seq(from = frag_min, to = frag_max, by = step),
         function(shiftLen){
             ###TODO HERE
             # if(shiftLen == 100) browser()
             reads_dt[strand == "+", shiftn := shiftLen ]
-            dc_dt = calcStrandCorr(reads_dt[, .(which_label,
+            dc_dt = .calc_cross_corr(reads_dt[, list(which_label,
                                                 seqnames,
                                                 start = start + shiftn, end = end + shiftn,
                                                 strand)],
                                    test_gr, frag_len = NA, window_size = 1)
-            cov_dt = .calc_stranded_coverage(reads_dt[, .(which_label,
+            cov_dt = .calc_stranded_coverage(reads_dt[, list(which_label,
                                                           seqnames,
                                                           start = start + shiftn, end = end + shiftn,
                                                           strand)], test_gr, 1)

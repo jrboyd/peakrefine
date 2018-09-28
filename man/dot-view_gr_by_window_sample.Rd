@@ -36,6 +36,6 @@ reads_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
 ext_cov = coverage(split(
     GRanges(reads_dt[strand == "+"]), reads_dt$which_label))
 score_gr = GRanges(ext_cov)
-peakrefine::.view_gr_by_window_sample(score_gr, qgr, 1,
+peakrefine:::.view_gr_by_window_sample(score_gr, qgr, 1,
                                  anchor = "center_unstranded")
 }

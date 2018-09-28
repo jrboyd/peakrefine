@@ -35,7 +35,7 @@ reads_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
 ext_cov = GenomicRanges::coverage(GenomicRanges::split(
     GenomicRanges::GRanges(reads_dt[strand == "+"]), reads_dt$which_label))
 score_gr = GenomicRanges::GRanges(ext_cov)
-bam_dt = peakrefine::.view_gr_by_window_sample(score_gr, qgr, 1,
+bam_dt = peakrefine:::.view_gr_by_window_sample(score_gr, qgr, 1,
                                  anchor = "center_unstranded")
 peakrefine:::.shift_anchor(bam_dt, 1, "center_unstranded")
 

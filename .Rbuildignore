@@ -14,3 +14,4 @@ jaspar$
 \.pdf$
 \.bu$
 \.save$
+^\dev*.R$

@@ -12,6 +12,7 @@
 #' @slot fragment_lengths integer.
 #' @slot fl2color character.
 #' @slot pwm PWMLognBackground.
+#' @slot target_pwm_names character.
 #' @slot output_prefix character.
 #' @slot plots list.
 #'
@@ -51,7 +52,23 @@ setClass(Class = "PeakRefiner",
 
 #' initialize a new PeakRefiner
 #'
-#' @param PeakRefiner empty PeakRefiner
+#' @param .Object empty PeakRefiner
+#' @param peak_set GRanges formatted peak set to calculate motifs on
+#' @param bam_treat_file .bam file of aligned reads from ChIP-seq pulldown.
+#'   Index must be at .bam.bai
+#' @param bam_input_file .bam file of aligned reads from input control. Index
+#'   must be at .bam.bai
+#' @param pwm Position Weight Matrix from PWMEnrich
+#' @param target_pwm_names names of PWMs to include in figures by default
+#' @param fragment_lengths fragment lengths to consider
+#' @param color_overrides character. colors to use for each item in
+#'   fragment_lengths.  should contain valid hex ("#000000") or R colors
+#'   ("black") and be named with items in fragment_lengths.  non-overriden items
+#'   will be black.
+#' @param color_default single character. black.
+#' @param auto_frag_len_FUN function to use to auto calculate fragment length.
+#'   must accept two argument, bam_file and peak_set.
+#' @param output_prefix prefix to use for output files.
 #'
 #' @return valid PeakRefiner
 #'
@@ -89,7 +106,15 @@ setMethod("initialize", "PeakRefiner", function(.Object,
         warning("fragment_lengths not set,  attempting to determine read and fragment sizes...")
         # browser()
         if(is.null(auto_frag_len_FUN)){
-            auto_frag_len_FUN = crossCorrByExtension()
+            # auto_frag_len_FUN = crossCorrByExtension()
+            warning("TODO replace auto FUN")
+            auto_frag_len_FUN = function(bf, ps){
+                return(list(
+                    read_length = 101,
+                    frag_length = 180,
+                    sample_plot = ggplot()
+                ))
+            }
         }
         sc = auto_frag_len_FUN(bam_treat_file, peak_set)
         fragment_lengths = c(sc$read_length, sc$frag_length)

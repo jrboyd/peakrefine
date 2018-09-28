@@ -22,6 +22,8 @@ class to handle peak refinement
 
 \item{\code{pwm}}{PWMLognBackground.}
 
+\item{\code{target_pwm_names}}{character.}
+
 \item{\code{output_prefix}}{character.}
 
 \item{\code{plots}}{list.}

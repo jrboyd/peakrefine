@@ -145,7 +145,7 @@
 #' ext_cov = GenomicRanges::coverage(GenomicRanges::split(
 #'     GenomicRanges::GRanges(reads_dt[strand == "+"]), reads_dt$which_label))
 #' score_gr = GenomicRanges::GRanges(ext_cov)
-#' bam_dt = peakrefine::.view_gr_by_window_sample(score_gr, qgr, 1,
+#' bam_dt = peakrefine:::.view_gr_by_window_sample(score_gr, qgr, 1,
 #'                                  anchor = "center_unstranded")
 #' peakrefine:::.shift_anchor(bam_dt, 1, "center_unstranded")
 #'
@@ -206,7 +206,7 @@
 #' ext_cov = coverage(split(
 #'     GRanges(reads_dt[strand == "+"]), reads_dt$which_label))
 #' score_gr = GRanges(ext_cov)
-#' peakrefine::.view_gr_by_window_sample(score_gr, qgr, 1,
+#' peakrefine:::.view_gr_by_window_sample(score_gr, qgr, 1,
 #'                                  anchor = "center_unstranded")
 .view_gr_by_window_sample = function(score_gr, query_gr, window_size,
                                    anchor = c("center", "center_unstranded",
@@ -274,8 +274,8 @@
 #' bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
 #' np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
 #' qgr = rtracklayer::import(np, format = "narrowPeak")
-#' bam_dt = .fetch_bam_stranded(bam_file, qgr)
-#' cov_dt = .calc_stranded_coverage(bam_dt, qgr)
+#' bam_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
+#' cov_dt = peakrefine:::.calc_stranded_coverage(bam_dt, qgr)
 #'
 #'
 .calc_stranded_coverage = function(reads_dt, query_gr, window_size = 1){
@@ -307,24 +307,23 @@
 #'   retrieves coverage every 10 bp.
 #'
 #' @return data.table of correlation per region in query_gr
-#' @export
 #' @rawNamespace import(data.table, except = c(shift, first, last, second))
-#' @importFrom stats cor
 #' @examples
 #' bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
 #' np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
 #' qgr = rtracklayer::import(np, format = "narrowPeak")
-#' bam_dt = .fetch_bam_stranded(bam_file, qgr)
-#' calcStrandCorr(bam_dt, qgr) #read correlation
-#' calcStrandCorr(bam_dt, qgr, frag_len = 150) #fragment 150 bp correlation
-calcStrandCorr = function(reads_dt, query_gr,  frag_len = NA, window_size = 1){
+#' bam_dt = peakrefine:::.fetch_bam_stranded(bam_file, qgr)
+#' peakrefine:::.calc_cross_corr(bam_dt, qgr,  frag_len = NA) #read correlation
+#' peakrefine:::.calc_cross_corr(bam_dt, qgr, frag_len = 150) #fragment 150 bp correlation
+.calc_cross_corr = function(reads_dt, query_gr,  frag_len = NA, window_size = 1){
+    id = NULL # reserve for data.table
     if(!is.na( frag_len)){
         reads_dt = .extend_reads(reads_dt,  frag_len)
     }
     pile_dt = .calc_stranded_coverage(reads_dt, query_gr, window_size)
     # ggplot(pile_dt) + geom_path(aes(x = x, y = y, color = strand)) + facet_wrap("id")
     dc_dt = data.table::dcast(pile_dt, id + x ~ strand, value.var = "y")
-    dc_dt = dc_dt[, .(corr = cor(`+`, `-`)) , by = .(id)]
+    dc_dt = dc_dt[, list(corr = cor(`+`, `-`)) , by = list(id)]
     dc_dt
 }
 

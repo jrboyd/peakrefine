@@ -31,6 +31,8 @@ crossCorrByExtension = function(bam_file,
                                 step = 10,
                                 small_step = 1,
                                 include_plots = TRUE){
+    which_label = N = id = crank = corr = frag_len = NULL #reserve for data.table
+    if(is.na(n_regions)) n_regions = length(query_gr)
     stopifnot(is.numeric(n_regions))
     stopifnot(n_regions >= 1)
     if(is.na(n_regions) || n_regions >= length(query_gr)){
@@ -49,37 +51,37 @@ crossCorrByExtension = function(bam_file,
     message("fetch reads...")
     reads_dt = .fetch_bam_stranded(bam_file, test_gr, max_dupes = max_dupes)
 
-    cnt_dt = reads_dt[, .N, by = .(which_label)]
+    cnt_dt = reads_dt[, .N, by = list(which_label)]
     test_dt = data.table(which_label = as.character(test_gr), id = test_gr$id)
     cnt_dt = merge(cnt_dt, test_dt, all = TRUE)
     cnt_dt[is.na(N), N := 0]
-    cnt_dt = cnt_dt[, .(id, count = N)]
+    cnt_dt = cnt_dt[, list(id, count = N)]
 
-    read_corr = calcStrandCorr(reads_dt, test_gr)
+    read_corr = .calc_cross_corr(reads_dt, test_gr)
     read_coverage = .calc_stranded_coverage(reads_dt, test_gr)
 
     tab = table(reads_dt$width)
     read_length = as.numeric(names(tab[which(tab == max(tab))]))
     message("correlate coarse...")
     corrVals = pbapply::pblapply(seq(from = frag_min, to = frag_max, by = step), function(frag_len){
-        dc_dt = calcStrandCorr(reads_dt, test_gr, frag_len)
-        dc_dt$frag_len = fragLen
+        dc_dt = .calc_cross_corr(reads_dt, test_gr, frag_len)
+        dc_dt$frag_len = frag_len
         dc_dt
     })
 
     corrVals = data.table::rbindlist(corrVals)
 
     # corrVals$crank = NULL
-    corrVals[, crank := rank(-corr), by = .(id)]
+    corrVals[, crank := rank(-corr), by = list(id)]
     center = round(mean(corrVals[crank < 2 & !is.na(corr)]$frag_len))
     message("correlate fine...")
     corrValsDetail = pbapply::pblapply(seq(from = center-step, to = center+step, by = small_step), function(frag_len){
-        dc_dt = calcStrandCorr(reads_dt, test_gr, frag_len)
-        dc_dt$frag_len = fragLen
+        dc_dt = .calc_cross_corr(reads_dt, test_gr, frag_len)
+        dc_dt$frag_len = frag_len
         dc_dt
     })
     corrValsDetail = rbindlist(corrValsDetail)
-    corrValsDetail[, crank := rank(-corr), by = .(id)]
+    corrValsDetail[, crank := rank(-corr), by = list(id)]
     corrValsDetail[crank == 1]
     bestFragLen = round(mean(corrValsDetail[crank < 2]$frag_len))
 
@@ -96,6 +98,7 @@ crossCorrByExtension = function(bam_file,
             frag_length = bestFragLen,
             read_corr = read_corr,
             frag_corr = frag_corr,
+            corr_vals = corrVals,
             count = cnt_dt,
             sample_plot = p
         )
@@ -105,6 +108,7 @@ crossCorrByExtension = function(bam_file,
             frag_length = bestFragLen,
             read_corr = read_corr,
             frag_corr = frag_corr,
+            corr_vals = corrVals,
             count = cnt_dt
         )
     }
@@ -125,7 +129,7 @@ crossCorrByExtension = function(bam_file,
 #' @return Either a GRanges equivalent to query_gr with added columns for
 #'   correlation metics or a data.table of metrics.
 #' @export
-#'
+#' @import parallel
 #' @examples
 #' bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
 #' np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
@@ -136,9 +140,10 @@ crossCorrByExtensionFull = function(bam_file, query_gr, frag_len,
                                     ncores = 1,
                                     output_withGRanges = TRUE){
     # browser()
+    if(is.null(query_gr$id)) query_gr$id = query_gr$name
     options(mc.cores = ncores)
     assignments = ceiling(seq_along(query_gr) / (length(query_gr)/ncores))
-    cres = mclapply(seq_len(ncores), function(i){
+    cres = parallel::mclapply(seq_len(ncores), function(i){
         crossCorrByExtension(bam_file,
                              query_gr[assignments == i],
                              n_regions = NA,
