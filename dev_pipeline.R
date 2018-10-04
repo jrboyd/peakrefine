@@ -28,10 +28,13 @@ bfcif = function(bfc, rname, FUN){
 
 
 cach_version = "v3"
-
-qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks_passIDR.05.narrowPeak")[[1]]
-qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled_peaks.narrowPeak")[[1]]
-qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak")[[1]]
+qgr =  rtracklayer::import(system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine"), format = "narrowPeak")
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10A_CTCF_pooled/MCF10A_CTCF_pooled_peaks_passIDR.05.narrowPeak")[[1]]
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled_peaks.narrowPeak")[[1]]
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10A_RUNX1_pooled/MCF10A_RUNX1_pooled_peaks.narrowPeak")[[1]]
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10AT1_RUNX1_pooled/MCF10AT1_RUNX1_pooled_peaks.narrowPeak")[[1]]
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10CA1_RUNX1_pooled/MCF10CA1_RUNX1_pooled_peaks.narrowPeak")[[1]]
+# qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak")[[1]]
 # qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_full_RUNX1/MCF10A-dmso_Runx1_pooled/MCF10A-dmso_Runx1_pooled_peaks.narrowPeak")[[1]]
 # qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_full_RUNX1/MCF10A-released_Runx1_pooled/MCF10A-released_Runx1_pooled_peaks.narrowPeak")[[1]]
 # qgr = seqsetvis::easyLoad_narrowPeak("/slipstream/galaxy/uploads/working/qc_framework/output_MCF10A_BRG1_rasim_U13369mask/MCF10A_BRG1_pooled/MCF10A_BRG1_pooled_peaks.narrowPeak")[[1]]
@@ -42,10 +45,13 @@ qgr = resize(qgr, 800, fix = "center")
 
 
 # qgr = sample(qgr, 3200)
-
-bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam"
-bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled.bam"
-bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled.bam"
+bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10A_CTCF_pooled/MCF10A_CTCF_pooled.bam"
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_CTCF/MCF10CA1_CTCF_pooled/MCF10CA1_CTCF_pooled.bam"
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10A_RUNX1_pooled/MCF10A_RUNX1_pooled.bam"
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10AT1_RUNX1_pooled/MCF10AT1_RUNX1_pooled.bam"
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_AF_MCF10_Runx1_U13369masked/MCF10CA1_RUNX1_pooled/MCF10CA1_RUNX1_pooled.bam"
+# bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled.bam"
 # bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_full_RUNX1/MCF10A-dmso_Runx1_pooled/MCF10A-dmso_Runx1_pooled.bam"
 # bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_JR_bookmarking_full_RUNX1/MCF10A-released_Runx1_pooled/MCF10A-released_Runx1_pooled.bam"
 # bam_file = "/slipstream/galaxy/uploads/working/qc_framework/output_MCF10A_BRG1_rasim_U13369mask/MCF10A_BRG1_pooled/MCF10A_BRG1_pooled.bam"
@@ -126,32 +132,20 @@ flex_frag_corrs = corr_res$flex_fragment_correlation
 mean_frag_corrs = corr_res$mean_fragment_correlation
 peak_strand_corr = corr_res$full_correlation_results
 
-# if(nrow(bfcquery(bfc_corr, query = corr_key, field = "rname")) == 0){
-#     message("cached results not found, gathering correlation info.")
-#     st = system.time({
-#         lres = parallel::mclapply(unique(grps), function(g){
-#             k = grps == g
-#             crossCorrByRle(bam_file, qgr[k], frag_min = frag_min, frag_max = frag_max)
-#         })
-#     })
-#
-#     rl = getReadLength(bam_file, qgr)
-#     peak_strand_corr = rbindlist(lres)
-#     read_corrs = peak_strand_corr[shift == rl]
-#     max_dt = peak_strand_corr[, .(shift = shift[which.max(correlation)], correlation = max(correlation)), by = .(id)]
-#     fl = round(mean(max_dt$shift))
-#     flex_frag_corrs = max_dt[, .(shift, id, correlation)]
-#     mean_frag_corrs = peak_strand_corr[shift == round(mean(flex_frag_corrs$shift))]
-#     cache_path = bfcnew(bfc_corr, rname = corr_key)
-#     save(rl, fl, read_corrs, flex_frag_corrs, mean_frag_corrs, peak_strand_corr, file = cache_path)
-# }else{
-#     message("using cached results for correlation.")
-#     load(bfcrpath(bfc_corr, corr_key))
-# }
-
 ggplot(peak_strand_corr[id %in% unique(id)[1:500]],
        aes(x = shift, y = correlation, group = id)) +
     geom_path(alpha = .05, size = 3)
+
+ggplot(peak_strand_corr[id %in% unique(id)[1:500]],
+       aes(x = shift, y = correlation)) +
+    stat_density_2d(geom = "raster", aes(fill = stat(density)), contour = FALSE)
+
+# df = dcast(peak_strand_corr, id~shift, value.var = "correlation")
+# mat = as.matrix(df[, -1])
+# rownames(mat) = df[[1]]
+# hclust(mat, dist)
+# gplots::heatmap.2(mat[1:100,], trace = "n", Colv = FALSE, labRow = "", labCol = "", dendrogram = "none",
+#                   col = rgb(colorRamp(c("blue", "white", "red"))(0:50/50)/255))
 
 read_corrs
 flex_frag_corrs
@@ -173,16 +167,6 @@ motif_res = bfcif(bfc_motif, motif_key, function(){
     pre_motif(qgr, pwm = pwm, seq_reference = Hsapiens, nbases = nbases)
 })
 
-# if(nrow(bfcquery(bfc_motif, query = motif_key, field = "rname")) == 0){
-#     message("cached results not found, gathering motif info.")
-#     motif_res = pre_motif(qgr, pwm = pwm, seq_reference = Hsapiens, nbases = nbases)
-#     cache_path = bfcnew(bfc_motif, rname = motif_key)
-#     save(motif_res, file = cache_path)
-# }else{
-#     message("using cached results for correlation.")
-#     load(bfcrpath(bfc_motif, motif_key))
-# }
-
 motif_md5 = digest::digest(motif_res)
 
 stopifnot(all(read_corrs$id == qgr$name))
@@ -192,6 +176,8 @@ qgr$read_corr = read_corrs$correlation
 qgr$flex_frag_corr = flex_frag_corrs$correlation
 qgr$mean_frag_corr = mean_frag_corrs$correlation
 qgr$flex_frag_len = flex_frag_corrs$shift
+
+
 
 qdt = as.data.table(qgr)
 to_score = c("signalValue", "pValue", "mean_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len")
@@ -208,7 +194,7 @@ for(ts in to_score){
 qdt[, rank1 := rank(-pValue, ties.method = "first")]
 qdt[, rank2 := rank(-flex_frag_corr, ties.method = "first")]
 qdt[, rankMax := max(rank1, rank2), by = .(name)]
-qdt[, paste0("combined", "_group") := g[ceiling(rank(rankMax, ties.method = "random") / .N * ngroup)]]
+# qdt[, paste0("combined", "_group") := g[ceiling(rank(rankMax, ties.method = "random") / .N * ngroup)]]
 
 todo_groups = colnames(qdt)[grepl("group", colnames(qdt))]
 
@@ -234,44 +220,6 @@ all_motif = parallel::mclapply(seq_len(nrow(todo_dt)), mc.preschedule = FALSE, f
 })
 
 
-
-# all_motif = lapply(todo_groups, function(grp){
-#     # lapply(levels(qdt[[grp]]), function(sel){
-#     #     message(grp, " ", sel)
-#     parallel::mclapply(levels(qdt[[grp]]), function(sel){
-#         motif_group_key = paste(bam_md5, digest::digest(base_gr),
-#                                 motif_md5,
-#                                 digest::digest(qdt[[grp]]), grp,
-#                                 sel, cach_version, nbases, sep = "_")
-#         myMotifRes = bfcif(bfc_motif, motif_group_key, function(){
-#             message("calculating motifs for ",
-#                     grp, " ", sel)
-#             k = which(qdt[[grp]] == sel)
-#             groupReport(subset_MotifEnrichmentResults(motif_res, k, pwm))
-#         })
-#         myMotifRes
-# #
-# #         if(nrow(bfcquery(bfc_motif, query = motif_group_key, field = "rname")) == 0){
-# #             cache_path = bfcnew(bfc_motif, rname = motif_group_key)
-# #
-# #         }else{
-# #             cache_path = bfcrpath(bfc_motif, motif_group_key)
-# #         }
-# #
-# #         if(file.exists(cache_path)){
-# #             load(bfcrpath(bfc_motif, motif_group_key))
-# #         }else{
-# #             message("calculating motifs for ",
-# #                     grp, " ", sel)
-# #             k = which(qdt[[grp]] == sel)
-# #             myMotifRes = groupReport(subset_MotifEnrichmentResults(motif_res, k, pwm))
-# #             save(myMotifRes, file = cache_path)
-# #         }
-# #
-# #         myMotifRes
-#     })
-# })
-
 names(all_motif) = paste(todo_dt$sel, todo_dt$grp)
 
 dt_motif = rbindlist(lapply(all_motif, function(y){
@@ -282,25 +230,24 @@ dt_motif = rbindlist(lapply(all_motif, function(y){
 
 dt_motif[, c("group", "metric") := tstrsplit(name, " ")]
 
-# # all_motif$signalValue_group
-# dt_motif = rbindlist(use.names = TRUE, idcol = "metric",
-#                      lapply(all_motif, function(x){
-#                          names(x) = g
-#                          rbindlist(use.names = TRUE, idcol = "group",
-#                                    lapply(x, function(y){
-#                                        dt = as.data.table(as.data.frame(y))
-#                                        colnames(dt) = gsub("\\.", "_", colnames(dt))
-#                                        dt
-#                                    }))
-#                      }))
-
 dt_motif$group = factor(dt_motif$group, levels = rev(levels(g)))
 dt_motif = dt_motif[order(group)][order(metric)][order(id)]
+
+library("GGally")
+ggpairs(qdt[sample(.N, 500), .(signalValue, pValue, mean_frag_corr, flex_frag_corr, read_corr, flex_frag_len)], lower = list(continuous = "density"))
+
+
+metric_dt = melt(qdt[, c("name", to_score), with = F], id.vars = "name", value.name = "score", variable.name = "metric")
+metric_dt[, score_rank := rank(-score, ties.method = "first"), by = .(metric)]
+metric_dt[, score_norm := (score - min(score)) / (max(score) - min(score)), by = .(metric) ]
+metric_dt[, score_rank_norm := (score_rank - min(score_rank)) / (max(score_rank) - min(score_rank)), by = .(metric) ]
+
+ggplot(metric_dt, aes(x = score, y = score_rank_norm)) + geom_point() + facet_wrap("metric", scales = "free_x")
 
 id_oi = names(motif_res@res$pwms)
 id_oi = id_oi[grepl("RUNX", id_oi)]
 
-id_oi = dt_motif[, .(score_range = diff(range(raw_score))) , by = .(id)][order(score_range, decreasing = TRUE)]$id[1:3]
+id_oi = dt_motif[, .(score_range = quantile(top_motif_prop, .75)), by = .(id)][order(score_range, decreasing = TRUE)]$id[1:3]
 ggplot(dt_motif[id %in% id_oi],
        aes(x = group,
            y = top_motif_prop,
@@ -325,17 +272,88 @@ ggplot(dt_motif[id %in% id_oi],
     theme_classic() +
     theme(strip.text.y = element_text(angle = 0))
 
-library("GGally")
-ggpairs(qdt[sample(.N, 500), .(signalValue, pValue, mean_frag_corr, flex_frag_corr, read_corr, flex_frag_len)], lower = list(continuous = "density"))
 
 
+# qdt$passLow = FALSE
+qdt$combined_passing = FALSE
+qdt[signalValue > 5 & pValue > 5 & flex_frag_corr > .65 & read_corr < .6 &
+        flex_frag_len >= 100 & flex_frag_len <= 300, combined_passing := TRUE ]
+# qdt[signalValue > 10 & pValue > 10 & flex_frag_corr > .65 & read_corr < .6 &
+        # flex_frag_len >= 100 & flex_frag_len <= 300, passHigh := TRUE ]
 
-# r12 = subset_MotifEnrichmentResults(motif_res, 1:2, pwm)
-# r35 = subset_MotifEnrichmentResults(motif_res, 3:5, pwm)
-# r15 = add_MotifEnrichmentResults(r12, r35, pwm)
-# r15b = subset_MotifEnrichmentResults(motif_res, 1:5, pwm)
-#
-# head(r12$group.nobg)
-# head(r35$group.nobg)
-# head(r15$group.nobg)
-# head(r15b$group.nobg)
+npass = sum(qdt$combined_passing)
+npass
+nrow(qdt)
+
+todo_groups = colnames(qdt)[grepl("group", colnames(qdt))]
+todo_groups_direction = rep(1, length(todo_groups))
+names(todo_groups_direction) = todo_groups
+todo_groups_direction["read_corr_group"] = -1
+
+for(group in todo_groups){
+    qdt[[sub("_group", "_passing", group)]] =
+        qdt[, rank(-1*todo_groups_direction[group]*get(sub("_group", "", group)), ties.method = "first") <= npass]
+}
+
+
+todo_passing = colnames(qdt)[grepl("passing", colnames(qdt))]
+
+todo_dt = rbindlist(lapply(todo_passing, function(grp){
+    data.table(sel = c(FALSE, TRUE), grp = grp)
+}))
+
+pass_motif = parallel::mclapply(seq_len(nrow(todo_dt)), mc.preschedule = FALSE, function(i){
+    Sys.sleep(i / 2) #sql gets overwhelmed without staggering out a bit
+    grp = todo_dt[i, ]$grp
+    sel = todo_dt[i, ]$sel
+    motif_group_key = paste(bam_md5, digest::digest(base_gr),
+                            motif_md5,
+                            digest::digest(qdt[[grp]]), grp,
+                            sel, cach_version, nbases, sep = "_")
+    myMotifRes = bfcif(bfc_motif, motif_group_key, function(){
+        message("calculating motifs for ",
+                grp, " ", sel)
+        k = which(qdt[[grp]] == sel)
+        groupReport(subset_MotifEnrichmentResults(motif_res, k, pwm))
+    })
+    myMotifRes
+})
+
+names(pass_motif) = paste(todo_dt$sel, todo_dt$grp)
+
+dt_motif = rbindlist(lapply(pass_motif, function(y){
+    dt = as.data.table(as.data.frame(y))
+    colnames(dt) = gsub("\\.", "_", colnames(dt))
+    dt
+}), use.names = TRUE, idcol = "name")
+
+dt_motif[, c("group", "metric") := tstrsplit(name, " ")]
+
+dt_motif$group = factor(dt_motif$group, levels = c(TRUE, FALSE))
+dt_motif = dt_motif[order(group)][order(metric)][order(id)]
+
+
+id_oi = dt_motif[, .(score_range = quantile(top_motif_prop, .75)), by = .(id)][order(score_range, decreasing = TRUE)]$id[1]
+ggplot(dt_motif[id %in% id_oi],
+       aes(x = group,
+           y = top_motif_prop,
+           fill = group,
+           group =  paste(id, metric))) +
+    geom_bar(stat = "identity") +
+    # geom_point() +
+    facet_wrap("metric", ncol = 3) +
+    theme(panel.grid.major.y = element_line()) +
+    theme_classic() +
+    theme(strip.text.y = element_text(angle = 0))
+
+ggplot(dt_motif[id %in% id_oi],
+       aes(x = group,
+           y = raw_score,
+           fill = group,
+           group =  paste(id, metric))) +
+    geom_bar(stat = "identity") +
+    # geom_point() +
+    facet_wrap("metric", ncol = 3) +
+    theme(panel.grid.major.y = element_line()) +
+    theme_classic() +
+    theme(strip.text.y = element_text(angle = 0))

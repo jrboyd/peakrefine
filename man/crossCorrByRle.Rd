@@ -4,8 +4,8 @@
 \alias{crossCorrByRle}
 \title{Calculate cross correlation by extending reads}
 \usage{
-crossCorrByRle(bam_file, query_gr, max_dupes = 1, frag_min = 50,
-  frag_max = 300, include_plots = TRUE)
+crossCorrByRle(bam_file, query_gr, max_dupes = 1,
+  fragment_range = 50:300, read_length = NULL, include_plots = TRUE)
 }
 \arguments{
 \item{bam_file}{character. Path to .bam file, must have index at .bam.bai.}
@@ -14,9 +14,12 @@ crossCorrByRle(bam_file, query_gr, max_dupes = 1, frag_min = 50,
 
 \item{max_dupes}{integer.  Duplicate reads above this value will be removed.}
 
-\item{frag_min}{integer.  extension value to start at.}
+\item{fragment_range}{integer.  fragment size range to search for maximum
+correlation.}
 
-\item{frag_max}{integer. extension value to end at.}
+\item{read_length}{integer. Any values outside fragment_range that must be
+searched.  If not supplied will be determined from bam_file.  Set as NA
+to disable this behavior.}
 
 \item{include_plots}{logical. Should plots be included in output?}
 }
@@ -30,6 +33,6 @@ Calculate cross correlation by extending reads
 bam_file = system.file("extdata", "MCF10A_CTCF.random5.bam", package = "peakrefine")
 np = system.file("extdata", "MCF10A_CTCF.random5.narrowPeak", package = "peakrefine")
 query_gr = rtracklayer::import(np, format = "narrowPeak")
-crossCorrByExtension(bam_file, query_gr[1:2], frag_min = 50,
-frag_max = 250, step = 50, small_step = 10)
+crossCorrByExtension(bam_file, query_gr[1:2], fragment_range = 50:250,
+step = 50, small_step = 10)
 }
