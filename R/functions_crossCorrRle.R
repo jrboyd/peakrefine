@@ -113,7 +113,11 @@ getReadLength = function(bam_file,
 
 gather_metrics = function(peak_strand_corr, read_length = NULL){
     max_dt = peak_strand_corr[, .(shift = shift[which.max(correlation)], correlation = max(correlation)), by = .(id)]
-    fl = round(median(max_dt$shift, na.rm = TRUE))
+    if(is.null(read_length)){
+        fl = round(median(max_dt[shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
+    }else{
+        fl = round(median(max_dt[shift != read_length][shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
+    }
     flex_frag_corrs = max_dt[, .(shift, id, correlation)]
     stable_frag_corrs = peak_strand_corr[shift == fl]
 
