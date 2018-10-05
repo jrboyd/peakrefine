@@ -113,9 +113,9 @@ getReadLength = function(bam_file,
 
 gather_metrics = function(peak_strand_corr, read_length = NULL){
     max_dt = peak_strand_corr[, .(shift = shift[which.max(correlation)], correlation = max(correlation)), by = .(id)]
-    fl = round(mean(max_dt$shift, na.rm = TRUE))
+    fl = round(median(max_dt$shift, na.rm = TRUE))
     flex_frag_corrs = max_dt[, .(shift, id, correlation)]
-    mean_frag_corrs = peak_strand_corr[shift == fl]
+    stable_frag_corrs = peak_strand_corr[shift == fl]
 
     if(!is.null(read_length)){
         read_corrs = peak_strand_corr[shift == read_length]
@@ -123,12 +123,12 @@ gather_metrics = function(peak_strand_corr, read_length = NULL){
                    fragment_length = fl,
                    read_correlation = read_corrs,
                    flex_fragment_correlation = flex_frag_corrs,
-                   mean_fragment_correlation = mean_frag_corrs,
+                   stable_fragment_correlation = stable_frag_corrs,
                    full_correlation_results = peak_strand_corr)
     }else{
         out = list(fragment_length = fl,
                    flex_fragment_correlation = flex_frag_corrs,
-                   mean_fragment_correlation = mean_frag_corrs,
+                   stable_fragment_correlation = stable_frag_corrs,
                    full_correlation_results = peak_strand_corr)
     }
     out
@@ -150,15 +150,18 @@ gather_metrics = function(peak_strand_corr, read_length = NULL){
 #'
 #' @examples
 calcCorrMetrics = function(bam_file, qgr, frag_min, frag_max,
-                           bam_md5 = NULL,
+                           bam_md5 = NULL, qgr_md5 = NULL,
                            cache_path = "~/.cache_peakrefine",
-                           cach_version = "v1",
+                           cach_version = "v1", force_overwrite = FALSE,
                            n_splits = getOption("mc.cores", 1L)){
     if(is.null(bam_md5)){
         bam_md5 = tools::md5sum(bam_file)
     }
+    if(is.null(qgr_md5)){
+        qgr_md5 = digest::digest(qgr)
+    }
     bfc_corr = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
-    corr_key = paste(digest::digest(base_gr), bam_md5, frag_min, frag_max, cach_version, sep = "_")
+    corr_key = paste(qgr_md5, bam_md5, frag_min, frag_max, cach_version, sep = "_")
     corr_res = bfcif(bfc_corr, corr_key, function(){
         message("cached results not found, gathering correlation info.")
         nper = ceiling(length(qgr) / n_splits)
@@ -172,17 +175,5 @@ calcCorrMetrics = function(bam_file, qgr, frag_min, frag_max,
         })
         peak_strand_corr = rbindlist(lres)
         gather_metrics(peak_strand_corr, rl)
-        #
-        # read_corrs = peak_strand_corr[shift == rl]
-        # max_dt = peak_strand_corr[, .(shift = shift[which.max(correlation)], correlation = max(correlation)), by = .(id)]
-        # fl = round(mean(max_dt$shift, na.rm = TRUE))
-        # flex_frag_corrs = max_dt[, .(shift, id, correlation)]
-        # mean_frag_corrs = peak_strand_corr[shift == fl]
-        # list(read_length = rl,
-        #      fragment_length = fl,
-        #      read_correlation = read_corrs,
-        #      flex_fragment_correlation = flex_frag_corrs,
-        #      mean_fragment_correlation = mean_frag_corrs,
-        #      full_correlation_results = peak_strand_corr)
-    })
+    }, force_overwrite = force_overwrite)
 }
