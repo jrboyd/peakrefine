@@ -147,7 +147,7 @@ pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 
 
     todo_groups = colnames(qdt)[grepl("group", colnames(qdt))]
     dt_motif = calcMotifEnrichment(corr_res, base_gr, qdt, todo_groups,
-                                   pwm, seq, bam_md5 = bam_md5, qgr_md5 = qgr_md5,
+                                   pwm, seq, bam_md5 = bam_md5,
                                    cache_path = "~/.cache_motif/",
                                    cach_version = cach_version, ncores = ncores)
 
@@ -218,7 +218,7 @@ pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 
 
     dt_motif_pass = calcMotifEnrichment(corr_res, base_gr, qdt, todo_passing,
                                         pwm, seq,
-                                        bam_md5 = bam_md5, qgr_md5 = qgr_md5,
+                                        bam_md5 = bam_md5,
                                         cache_path = "~/.cache_motif/",
                                         cach_version = cach_version)
 

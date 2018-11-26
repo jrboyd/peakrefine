@@ -293,19 +293,19 @@ group_var = function(qdt, ts, nan_val = 0, ngroup = 8, seed = 0){
 #' @export
 #'
 #' @examples
-calcMotifEnrichment = function(corr_res, base_gr, qdt, todo_groups, pwm, seq, bam_md5, qgr_md5 = NULL, nbases = 200, ncores = 8,
+calcMotifEnrichment = function(corr_res, base_gr, qdt, todo_groups, pwm, seq, bam_md5, nbases = 200, ncores = 8,
                                cache_path = "~/.cache_peakrefine", force_overwrite = FALSE, force_overwrite_pre = FALSE,
                                cach_version = "v1"){
     base_gr$name = factor(base_gr$name, levels = qdt$name)
     base_gr = base_gr[order(base_gr$name)]
     stopifnot(all(base_gr$name == qdt$name))
-    if(is.null(qgr_md5)){
-        qgr_md5 = digest::digest(base_gr)
-    }
+    qgr_md5 = digest::digest(base_gr)
     options(mc.cores = ncores)
     bfc_motif = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
     motif_key = paste(qgr_md5, digest::digest(pwm),
                       digest::digest(seq), nbases, cach_version, sep = "_")
+
+
     motif_res = bfcif(bfc_motif, motif_key, function(){
         message("cached results not found, gathering motif info.")
         pre_motif(base_gr, pwm = pwm, seq_reference = seq, nbases = nbases, ncores = ncores)
