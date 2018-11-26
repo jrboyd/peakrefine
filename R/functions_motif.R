@@ -33,7 +33,6 @@ score_motif = function(bam_file, bam_input, query_gr, fl, motif_res = NULL,
     message("frag_len ", fl)
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     setwd(out_dir)
-    # browser()
     ## loading full motifs.
     cfile = paste0("cache_motif_res_", nbases, "nbases_", length(query_gr), "seq.save")
     if(is.null(motif_res)){
@@ -76,7 +75,7 @@ score_motif = function(bam_file, bam_input, query_gr, fl, motif_res = NULL,
             message("caching full motif enrichment.")
         }
 
-        }
+    }
 
     cfile = paste0("cache_strandRes_", fl, ".save")
     if(file.exists(cfile)){
@@ -141,7 +140,6 @@ score_motif = function(bam_file, bam_input, query_gr, fl, motif_res = NULL,
     corr_dt = corr_dt[order(id)]
 
     todo_groups = colnames(corr_dt)[grepl("group", colnames(corr_dt))]
-    # browser()
 
     all_motif = lapply(todo_groups, function(grp){
         parallel::mclapply(levels(corr_dt[[grp]]), function(sel){
@@ -191,35 +189,93 @@ score_motif = function(bam_file, bam_input, query_gr, fl, motif_res = NULL,
 #' @export
 #'
 #' @examples
-scoreMetrics = function(corr_res, base_gr, seed = 0){
+scoreMetrics = function(corr_res, base_gr, ngroup = 8){
     rl = corr_res$read_length
     fl = corr_res$fragment_length
     read_corrs = corr_res$read_correlation
-    flex_frag_corrs = corr_res$flex_fragment_correlation
-    stable_frag_corrs = corr_res$stable_fragment_correlation
-    peak_strand_corr = corr_res$full_correlation_results
 
-    qgr = base_gr
-    stopifnot(all(read_corrs$id == qgr$name))
-    stopifnot(all(flex_frag_corrs$id == qgr$name))
-    stopifnot(all(stable_frag_corrs$id == qgr$name))
-    qgr$read_corr = read_corrs$correlation
-    qgr$flex_frag_corr = flex_frag_corrs$correlation
-    qgr$stable_frag_corr = stable_frag_corrs$correlation
-    qgr$flex_frag_len = flex_frag_corrs$shift
+    if(is.null(corr_res$read_correlation$treatment)){
+        flex_frag_corrs = corr_res$flex_fragment_correlation
+        stable_frag_corrs = corr_res$stable_fragment_correlation
+        peak_strand_corr = corr_res$full_correlation_results
 
-    qdt = as.data.table(qgr)
-    to_score = c("signalValue", "qValue", "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len")
+        qgr = base_gr
+        stopifnot(all(read_corrs$id == qgr$name))
+        stopifnot(all(flex_frag_corrs$id == qgr$name))
+        stopifnot(all(stable_frag_corrs$id == qgr$name))
+        qgr$read_corr = read_corrs$correlation
+        qgr$flex_frag_corr = flex_frag_corrs$correlation
+        qgr$stable_frag_corr = stable_frag_corrs$correlation
+        qgr$flex_frag_len = flex_frag_corrs$shift
+
+        qdt = as.data.table(qgr)
+        to_score = c("signalValue", "qValue", "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len")
+
+    }else{
+        read_corrs = corr_res$read_correlation[treatment == "pulldown"]
+        flex_frag_corrs = corr_res$flex_fragment_correlation[treatment == "pulldown"]
+        stable_frag_corrs = corr_res$stable_fragment_correlation[treatment == "pulldown"]
+
+        read_corrs.input = corr_res$read_correlation[treatment == "input"]
+        flex_frag_corrs.input = corr_res$flex_fragment_correlation[treatment == "input"]
+        stable_frag_corrs.input = corr_res$stable_fragment_correlation[treatment == "input"]
+
+        qgr = base_gr
+        stopifnot(all(read_corrs$id == qgr$name))
+        stopifnot(all(flex_frag_corrs$id == qgr$name))
+        stopifnot(all(stable_frag_corrs$id == qgr$name))
+
+        qgr$read_corr = read_corrs$correlation
+        qgr$flex_frag_corr = flex_frag_corrs$correlation
+        qgr$stable_frag_corr = stable_frag_corrs$correlation
+        qgr$flex_frag_len = flex_frag_corrs$shift
+
+        qgr$read_corr_input = read_corrs.input$correlation
+        qgr$flex_frag_corr_input = flex_frag_corrs.input$correlation
+        qgr$stable_frag_corr_input = stable_frag_corrs.input$correlation
+        qgr$flex_frag_len_input = flex_frag_corrs.input$shift
+
+        qdt = as.data.table(qgr)
+        to_score = c("signalValue", "qValue", "stable_frag_corr",
+                     "flex_frag_corr", "read_corr", "flex_frag_len",
+                     "read_corr_input", "flex_frag_corr_input",
+                     "stable_frag_corr_input", "flex_frag_len_input")
+    }
+
     stopifnot(all(to_score %in% colnames(qdt)))
+    # for(ts in to_score){
+    #     if(any(is.nan(qdt[[ts]])))
+    #         qdt[is.nan(get(ts)), ][[ts]] = 0
+    # }
+    #
+    # g = factor(paste0("g", seq_len(ngroup)),
+    #            levels = rev(paste0("g", seq_len(ngroup))))
+    #
+    # for(ts in to_score){
+    #     set.seed(seed)
+    #     qdt[, paste0(ts, "_group") := g[ceiling(rank(-get(ts), ties.method = "random") / .N * ngroup)]]
+    # }
+    for(ts in to_score){
+        group_var(qdt, ts, 0, 8)
+    }
 
-    ngroup = 8
+    qdt
+}
+
+
+group_var = function(qdt, ts, nan_val = 0, ngroup = 8, seed = 0){
+    # for(ts in to_score){
+    if(any(is.nan(qdt[[ts]])))
+        qdt[is.nan(get(ts)), ][[ts]] = nan_val
+    # }
+
     g = factor(paste0("g", seq_len(ngroup)),
                levels = rev(paste0("g", seq_len(ngroup))))
 
-    for(ts in to_score){
-        set.seed(seed)
-        qdt[, paste0(ts, "_group") := g[ceiling(rank(-get(ts), ties.method = "random") / .N * ngroup)]]
-    }
+    # for(ts in to_score){
+    set.seed(seed)
+    qdt[, paste0(ts, "_group") := g[ceiling(rank(-get(ts), ties.method = "random") / .N * ngroup)]]
+    # }
     qdt
 }
 
@@ -237,23 +293,24 @@ scoreMetrics = function(corr_res, base_gr, seed = 0){
 #' @export
 #'
 #' @examples
-calcMotifEnrichment = function(corr_res, base_gr, qdt, todo_groups, pwm, seq, bam_md5, qgr_md5 = NULL, nbases = 200,
+calcMotifEnrichment = function(corr_res, base_gr, qdt, todo_groups, pwm, seq, bam_md5, qgr_md5 = NULL, nbases = 200, ncores = 8,
                                cache_path = "~/.cache_peakrefine", force_overwrite = FALSE, force_overwrite_pre = FALSE,
                                cach_version = "v1"){
+    base_gr$name = factor(base_gr$name, levels = qdt$name)
+    base_gr = base_gr[order(base_gr$name)]
+    stopifnot(all(base_gr$name == qdt$name))
     if(is.null(qgr_md5)){
         qgr_md5 = digest::digest(base_gr)
     }
+    options(mc.cores = ncores)
     bfc_motif = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
     motif_key = paste(qgr_md5, digest::digest(pwm),
                       digest::digest(seq), nbases, cach_version, sep = "_")
     motif_res = bfcif(bfc_motif, motif_key, function(){
         message("cached results not found, gathering motif info.")
-        pre_motif(base_gr, pwm = pwm, seq_reference = Hsapiens, nbases = nbases)
+        pre_motif(base_gr, pwm = pwm, seq_reference = seq, nbases = nbases, ncores = ncores)
     }, force_overwrite = force_overwrite_pre)
     motif_md5 = digest::digest(motif_res)
-    # todo_groups = colnames(qdt)[grepl("group", colnames(qdt))]
-
-    # browser()
     all_motif = lapply(todo_groups, function(grp){
         motif_group_key = paste(bam_md5, digest::digest(base_gr),
                                 motif_md5,
@@ -262,7 +319,7 @@ calcMotifEnrichment = function(corr_res, base_gr, qdt, todo_groups, pwm, seq, ba
         bfcif(bfc_motif, motif_group_key, function(){
             message("calculating motifs for ", grp)
             grp_motif = parallel::mclapply(levels(qdt[[grp]]), mc.preschedule = FALSE, function(sel){
-                k = which(qdt[[grp]] == sel)
+                k = which(as.character(qdt[[grp]]) == sel)
                 groupReport(subset_MotifEnrichmentResults(motif_res, k, pwm))
             })
             names(grp_motif) = levels(qdt[[grp]])

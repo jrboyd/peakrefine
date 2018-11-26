@@ -25,7 +25,7 @@ pre_motif = function(query_gr,
     PWMEnrich::registerCoresPWMEnrich(ncores)
     PWMEnrich::useBigMemoryPWMEnrich(TRUE)
     if(verbose) message("Fetching sequences...")
-    sequences = Biostrings::getSeq(Hsapiens,
+    sequences = Biostrings::getSeq(seq_reference,
                        resize(query_gr, nbases, fix = "center"))
     if(verbose) message("Calculating enrichments...")
     motif_res = PWMEnrich::motifEnrichment(sequences, pwm, verbose = verbose)
@@ -132,21 +132,21 @@ PWMEnrich.cloverScore = function (scores, lr3 = FALSE, verbose = FALSE)
                 res$group.norm = sapply(res$group.bg, qlnorm,
                                         lower.tail = FALSE)
             } else {
-                res$group.bg = logNormPvalSequenceSet(res$sequence.nobg,
+                res$group.bg = PWMEnrich:::logNormPvalSequenceSet(res$sequence.nobg,
                                                       seq.len, pwm.len, pwmobj@bg.mean, pwmobj@bg.sd,
                                                       pwmobj@bg.len)
                 res$group.norm = sapply(res$group.bg, qlnorm,
                                         lower.tail = FALSE)
             }
         } else if (score == "clover") {
-            res$group.bg = cloverScore(res$sequence.norm, verbose = verbose)
+            res$group.bg = PWMEnrich:::cloverScore(res$sequence.norm, verbose = verbose)
         }
     } else if (bg == "z") {
         seq.len = sapply(sequences, length)
         pwm.len = sapply(pwms, length)
         # res$sequence.bg = cutoffZscore(res$sequence.nobg, seq.len,
         #                                pwm.len, pwmobj@bg.P)
-        res$group.bg = cutoffZscoreSequenceSet(res$sequence.nobg,
+        res$group.bg = PWMEnrich:::cutoffZscoreSequenceSet(res$sequence.nobg,
                                                seq.len, pwm.len, pwmobj@bg.P)
     } else if (bg == "pval") {
         seq.len = sapply(sequences, length)
@@ -160,10 +160,10 @@ PWMEnrich.cloverScore = function (scores, lr3 = FALSE, verbose = FALSE)
             #                                                                           cutoff = usecutoff, B = B, verbose = verbose)))
         }
         if (score == "clover")
-            res$group.bg = cloverPvalue1seq(res$sequence.nobg,
+            res$group.bg = PWMEnrich:::cloverPvalue1seq(res$sequence.nobg,
                                             seq.len, pwm.len, pwmobj@bg.fwd, pwmobj@bg.rev,
                                             B = B, verbose = verbose, clover = res$group.nobg)
-        else res$group.bg = empiricalPvalueSequenceSet(res$sequence.nobg,
+        else res$group.bg = PWMEnrich:::empiricalPvalueSequenceSet(res$sequence.nobg,
                                                        seq.len, pwm.len, pwmobj@bg.fwd, pwmobj@bg.rev, cutoff = usecutoff,
                                                        B = B, verbose = verbose)
     } else if (bg == "ms") {
