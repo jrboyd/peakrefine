@@ -56,7 +56,7 @@ my_writeFASTQ = function(read, quality, name, file, append = FALSE, block_size =
     }
 }
 
-make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05){
+make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05, no_binding = FALSE){
     set.seed(seed)
     transition <- list(Binding=c(Background=1), Background=c(Binding= bind_p, Background= 1 - bind_p))
     transition <- lapply(transition, "class<-", "StateDistribution")
@@ -118,7 +118,7 @@ make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05){
                 for(j in 1:length(readPos[[k]][[i]])){
                     ## get (true) sequence
                     readSeq[idx] <- as.character(ChIPsim::readSequence(readPos[[k]][[i]][j], sequence[[k]],
-                                                                       strand=ifelse(i==1, 1, -1), readLen=readLen))
+                                                                       strand=ifelse(i==1, 1, -1), readLen=50))
                     ## get quality
                     readQual[idx] <- randomQuality(readSeq[idx])
                     ## introduce sequencing errors
@@ -134,16 +134,30 @@ make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05){
     myFunctions <- ChIPsim::defaultFunctions()
     myFunctions$readSequence <- dfReads
 
-    featureArgs <<- list(generator=generator, transition=transition, init=init, start = 0,
-                        length = 1e6, globals=list(shape=1, scale=20), experimentType="TFExperiment",
-                        lastFeat=c(Binding = FALSE, Background = TRUE), control=list(Binding=list(length=50)))
+    # featureArgs <<- list(generator=generator, transition=transition, init=init, start = 0,
+    #                      length = 1e6, globals=list(shape=1, scale=20), experimentType="TFExperiment",
+    #                      lastFeat=c(Binding = FALSE, Background = TRUE), control=list(Binding=list(length=50)))
     readDensArgs <<- list(fragment=fragLength, bind = 50, minLength = 150, maxLength = 250,
-                         meanLength = 200)
+                          meanLength = 200)
+
+    features <- ChIPsim::placeFeatures(generator, transition, init, start = 0, length = 1e6, globals=list(shape=1, scale=20),
+                                       experimentType="TFExperiment", lastFeat=c(Binding = FALSE, Background = TRUE),
+                                       control=list(Binding=list(length=50)))
+    # if(no_binding){#remove binding
+    #     k = sapply(features, function(x)class(x)[1]) == "Background"
+    #     features = features[k]
+    #         }
+
+    myFunctions$features = function(...)features
+
+    # dens <- ChIPsim::feat2dens(features)
+    # readDens <- ChIPsim::bindDens2readDens(dens, fragLength, bind = 50, minLength = 150, maxLength = 250,
+    #                                        meanLength = 200)
 
 
     set.seed(seed)
     simulated <- ChIPsim::simChIP(n_reads, genome, file = "", functions = myFunctions,
-                                  control = ChIPsim::defaultControl(features=featureArgs, readDensity=readDensArgs))
+                                  control = ChIPsim::defaultControl(readDensity=readDensArgs))
 
     print(table(sapply(simulated$features[[1]], function(x)class(x)[1])))
 

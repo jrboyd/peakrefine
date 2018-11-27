@@ -4,7 +4,7 @@ library(magrittr)
 
 theme_set(theme_classic())
 cach_version = "v8"
-data_source = "bookmarking"
+data_source = "AF_runx"
 
 # bam_file = "~/ENCODE_EGR1/K562_EGR1_myers_rep1_ENCFF645IYJ.bam"
 # qgr = rtracklayer::import("~/ENCODE_EGR1/K562_EGR1_myers_rep1_ENCFF178PTI.bed", format = "narrowPeak")
@@ -30,8 +30,17 @@ if(data_source == "Jonathan"){
         dir(full.names = TRUE, pattern = "Peak$")# %>% dir(full.names = TRUE, pattern = "Peak$")
 
     bams = paste0(file.path("/slipstream/home/jonathan/RUNX_META-ANALYSIS/BAMS", basename(dirname(peaks))), ".bam")
+}else if(data_source == "AF_runx"){
+    setwd(file.path("/slipstream/galaxy/uploads/working/qc_framework"))
+    peaks = c(
+        "output_AF_RUNX1_ChIP/AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled_peaks_passIDR.05.narrowPeak",
+        "output_AF_RUNX1_ChIP/AF-MCF10AT1_RUNX1_pooled/AF-MCF10AT1_RUNX1_pooled_peaks_passIDR.05.narrowPeak",
+        "output_AF_RUNX1_ChIP/AF-MCF10CA1_RUNX1_pooled/AF-MCF10CA1_RUNX1_pooled_peaks_passIDR.05.narrowPeak"
+    )
+    peaks = normalizePath(peaks)
+    bams = sub("_peaks.+narrowPeak$", ".bam", peaks)
+    inputs = bams %>% gsub("RUNX1_pooled", "input_pooled", .)
 }else if(data_source == "bookmarking"){
-    cach_version = "v8"
     setwd(file.path("/slipstream/galaxy/uploads/working/qc_framework"))
     peaks = c(
         "output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak",
@@ -65,8 +74,10 @@ if(data_source == "Jonathan"){
     # hist(width(over_gr), xlim = c(0,20000), breaks = 50)
 }
 setwd("~/R/peakrefine/")
+stopifnot(all(file.exists(peaks)))
 stopifnot(all(file.exists(bams)))
 if(exists("inputs")){
+    stopifnot(all(file.exists(inputs)))
     todo_df = data.frame(bam = bams,
                          peak = peaks,
                          inputs = inputs,

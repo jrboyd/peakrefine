@@ -6,63 +6,128 @@ library(digest)
 library(data.table)
 source("dev_chipsim_functions.R")
 
+ver = 6
+ver_g = 1
 bfcif = peakrefine:::bfcif
 bfc_sim = BiocFileCache("~/.cache_sim")
-set.seed(1)
+set.seed(ver)
+
 
 #size of genome
-gen_size = 100e6
-read_depths = c(5e4, 10e4, 50e4, 100e4)
-chip_enrichments = c(2, 5, 10, 50)
-
-n_reads = read_depths[1]
-f_enrich = chip_enrichments[1]
-
-
+gen_size = 10e6
+genome_name = paste0("10M_v", ver_g)
+read_depths = c(5e4, 10e4, 50e4, 100e4)[1:3]
+chip_enrichments = c(1, 50, 500, 5000)
 
 make_genome = function(){
+    set.seed(ver_g)
     Biostrings::DNAStringSet(c(CHR=paste(sample(Biostrings::DNA_BASES, gen_size, replace = TRUE), collapse = "")))
 }
 
-genome <- bfcif(bfc_sim, rname = digest(list("genome", gen_size, "v1")), make_genome)
-names(genome) = "chrSim1"
-Biostrings::writeXStringSet(genome, file = "simulation/simGenome.fa")
+
+genome <- bfcif(bfc_sim, rname = digest(list("genome", gen_size, genome_name, ver_g)), make_genome)
+names(genome) = paste0("chrSim", 1)
+
+gen_dir = paste0("simulation/genomes/simGenome", genome_name)
+dir.create(gen_dir, showWarnings = FALSE, recursive = TRUE)
+genome_file = file.path(gen_dir, paste0(basename(gen_dir), ".fa"))
+Biostrings::writeXStringSet(genome, file = genome_file)
+genome_file = normalizePath(genome_file)
+
+idx_dir =  file.path(gen_dir, "star_index")
+if(!dir.exists(idx_dir)){
+    dir.create(idx_dir, recursive = TRUE, showWarnings = FALSE)
+    setwd(idx_dir)
+    system(paste("bash ~/scripts/make_STAR_indexes_small.sh", genome_file))
+    setwd("~/R/peakrefine/")
+}
 
 
-ver = 2
+bfcif.path = function(bfc, rname){
+    # is rname in cache?
+    if(nrow(bfcquery(bfc, query = rname, field = "rname")) == 0){
+        cache_path = bfcnew(bfc, rname = rname)
+
+    }else{
+        cache_path = bfcrpath(bfc, rname)
+    }
+    cache_path
+}
+
+
 fo = FALSE
 options(scipen=999)
-all_sim = list()
-for(n_reads in read_depths){
-    for(f_enrich in chip_enrichments){
+todo_df = as.data.frame(expand.grid(read_depths, chip_enrichments))
 
+todo_df$path = sapply(seq_len(nrow(todo_df)), function(i){
+    n_reads = todo_df[i, 1]
+    f_enrich = todo_df[i, 2]
+    key = digest(list("sim", genome, n_reads, f_enrich, paste0("v", ver)))
+    bfcif.path(bfc = bfc_sim, digest(list("sim", genome, n_reads, f_enrich, paste0("v", ver))))
+})
+
+options(mc.cores = nrow(todo_df))
+all_sim = parallel::mclapply(seq_len(nrow(todo_df)), function(i){
+    n_reads = todo_df[i, 1]
+    f_enrich = todo_df[i, 2]
+    path = todo_df$path[i]
+    if(file.exists(path)){
+        load(path)
+    }else{
         this_make_sim = function(){
             make_sim(genome, n_reads, f_enrich, seed = ver)
         }
         message(n_reads, " ", f_enrich)
-        sim = bfcif(bfc = bfc_sim, digest(list("sim", genome, n_reads, f_enrich, paste0("v", ver))), this_make_sim, force_overwrite = fo)
-        sim_fastq = file.path("simulation/fastqs", paste0("simV", ver, "_", n_reads, "_", f_enrich, ".fastq"))
-        # if(!file.exists(sim_fastq)){
-            message("writing fastq")
-            my_writeFASTQ.dt(file = sim_fastq,
-                          read = sim$readSequence$sequence, quality = sim$readSequence$quality, name = sim$readSequence$name)
-        # }
-
-        all_sim[[paste(n_reads, f_enrich)]] = sim
+        sim = this_make_sim()
+        save(sim, file = path)
     }
-
-    this_make_input = function(){
-        make_sim(genome, n_reads, f_enrich, seed = ver, bind_p = 0)
+    if(f_enrich == 1){
+        sim_fastq = file.path(gen_dir, "fastqs", paste0("simV", ver, "_", n_reads, "_input.fastq"))
+    }else{
+        sim_fastq = file.path(gen_dir, "fastqs", paste0("simV", ver, "_", n_reads, "_", f_enrich, ".fastq"))
     }
-    message(n_reads, " ", "input")
-    sim = bfcif(bfc = bfc_sim, digest(list("sim", genome, n_reads, "input", paste0("v", ver))), this_make_input, force_overwrite = TRUE)
-    sim_fastq = file.path("simulation/fastqs", paste0("simV", ver, "_", n_reads, "_", "input", ".fastq"))
-    # if(!file.exists(sim_fastq)){
-        message("writing fastq")
-        my_writeFASTQ.dt(file = sim_fastq,
-                      read = sim$readSequence$sequence, quality = sim$readSequence$quality, name = sim$readSequence$name)
-    # }
-}
+    message("writing fastq")
+    my_writeFASTQ.dt(file = sim_fastq,
+                     read = sim$readSequence$sequence, quality = sim$readSequence$quality, name = sim$readSequence$name)
+    sim
+})
+names(all_sim) = paste(todo_df$Var1, todo_df$Var2)
+# all_sim = list()
+# for(n_reads in read_depths){
+#     for(f_enrich in chip_enrichments){
+#
+#         this_make_sim = function(){
+#             make_sim(genome, n_reads, f_enrich, seed = ver)
+#         }
+#         message(n_reads, " ", f_enrich)
+#         sim = bfcif(bfc = bfc_sim, digest(list("sim", genome, n_reads, f_enrich, paste0("v", ver))), this_make_sim, force_overwrite = fo)
+#         if(f_enrich == 1){
+#             sim_fastq = file.path("simulation/fastqs", paste0("simV", ver, "_", n_reads, "_input.fastq"))
+#         }else{
+#             sim_fastq = file.path("simulation/fastqs", paste0("simV", ver, "_", n_reads, "_", f_enrich, ".fastq"))
+#         }
+#         # if(!file.exists(sim_fastq)){
+#         message("writing fastq")
+#         my_writeFASTQ.dt(file = sim_fastq,
+#                          read = sim$readSequence$sequence, quality = sim$readSequence$quality, name = sim$readSequence$name)
+#         # }
+#
+#         all_sim[[paste(n_reads, f_enrich)]] = sim
+#     }
+#
+#     # this_make_input = function(){
+#     #     make_sim(genome, n_reads, f_enrich, seed = ver, bind_p = 0)
+#     # }
+#     # message(n_reads, " ", "input")
+#     # sim = bfcif(bfc = bfc_sim, digest(list("sim", genome, n_reads, "input", paste0("v", ver))), this_make_input, force_overwrite = fo)
+#     # sim_fastq = file.path("simulation/fastqs", paste0("simV", ver, "_", n_reads, "_", "input", ".fastq"))
+#     # # if(!file.exists(sim_fastq)){
+#     #     message("writing fastq")
+#     #     my_writeFASTQ.dt(file = sim_fastq,
+#     #                   read = sim$readSequence$sequence, quality = sim$readSequence$quality, name = sim$readSequence$name)
+#     #     all_sim[[paste(n_reads, "input")]] = sim
+#     # # }
+# }
 
 all_simPeaks = lapply(all_sim, function(sim){
     x = sim$features
@@ -78,7 +143,7 @@ all_simPeaks = lapply(all_sim, function(sim){
         b$weight
     })
     library(GenomicRanges)
-    simPeaks = GRanges("chrSim", IRanges(starts, starts + widths), weight = weights)
+    simPeaks = GRanges("chrSim1", IRanges(starts, starts + widths), weight = weights)
     simPeaks
 })
 
@@ -89,12 +154,47 @@ stopifnot(all(unique(unlist(all_starts)) == all_starts$`50000 2`))
 mat_weight = sapply(all_simPeaks, function(x)x$weight)
 stopifnot(all(round(cor(mat_weight), digits = 5) == 1))
 
-sim_peak = as.data.table(all_simPeaks$`50000 2`)
+sim_peak = as.data.table(all_simPeaks[[1]])
 sim_peak$weight = apply(mat_weight, 1, max)
 sim_peak[, weight := weight / min(weight)]
 sim_peak$width = NULL
 sim_peak[, name := paste0("true_", seq(.N))]
 sim_peak[, weight := round(weight * 100)]
 sim_peak = sim_peak[, c(1:3, 6, 5, 4)]
-write.table(sim_peak, file.path("simulation/peaks", paste0("simPeaks_v", ver, ".bed")), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(sim_peak, file.path(gen_dir, "peaks", paste0("simPeaks_v", ver, ".bed")), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+all_simPeaks = lapply(all_sim, function(sim){
+    x = sim$features
+    k = sapply(x[[1]], function(y)class(y)[1])!= "Binding"
+    binders = x[[1]][which(k)]
+    starts = sapply(binders, function(b){
+        b$start
+    })
+    widths = sapply(binders, function(b){
+        b$length
+    })
+    weights = sapply(binders, function(b){
+        b$weight
+    })
+    library(GenomicRanges)
+    simPeaks = GRanges("chrSim1", IRanges(starts, starts + widths), weight = weights)
+    simPeaks
+})
+
+#check if all starts equal
+all_starts = lapply(all_simPeaks, function(x)start(x))
+stopifnot(all(unique(unlist(all_starts)) == all_starts$`50000 2`))
+#check if weights correlate perfectly
+mat_weight = sapply(all_simPeaks, function(x)x$weight)
+stopifnot(all(round(cor(mat_weight), digits = 5) == 1))
+
+sim_peak = as.data.table(all_simPeaks[[1]])
+sim_peak$weight = apply(mat_weight, 1, max)
+sim_peak[, weight := weight / min(weight)]
+sim_peak$width = NULL
+sim_peak[, name := paste0("true_", seq(.N))]
+sim_peak[, weight := round(weight * 100)]
+sim_peak = sim_peak[, c(1:3, 6, 5, 4)]
+write.table(sim_peak, file.path(gen_dir, "peaks", paste0("simBg_v", ver, ".bed")), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+
 
