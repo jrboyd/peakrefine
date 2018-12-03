@@ -171,36 +171,58 @@ if(exists("inputs")){
     })
 }
 
-names(all_res) = todo_df$sample
+
 format(object.size(all_res), units = "GB")
-# k = sapply(all_res, function(x)x$read_length) == 35
-# todo_df[k,]
-table(sapply(all_res, function(x)x$read_length))
-all_corr = lapply(all_res, function(x)x$full_correlation_results)
-all_corr = lapply(all_corr, function(x){
-    uid = unique(x$id)
-    x[id %in% sample(uid, min(500, length(uid)))]
-})
-all_corr = rbindlist(all_corr, use.names = TRUE, idcol = "sample")
+
+all_qdt = lapply(all_res, function(x)x$qdt)
+all_corr = lapply(all_res, function(x)x$corr_res)
+
+
+
+for(i in seq_along(all_res)){
+    ver = sub("_.+", "", names(all_res)[i]) %>% sub("V", "", .)
+    ground_file = paste0("simulation/genomes/simGenome10M_v3/peaks/simPeaks_v", ver, ".bed")
+    ground_gr = rtracklayer::import.bed(ground_file)
+    corr_gr = GRanges(all_res[[i]])
+    olaps = findOverlaps(corr_gr, ground_gr)
+    corr_gr$is_true = FALSE
+    corr_gr$is_true[queryHits(olaps)] = TRUE
+    corr_gr$true_weight = 0
+    corr_gr$true_weight[queryHits(olaps)] = ground_gr$score[subjectHits(olaps)]
+
+    ground_gr$is_called = FALSE
+    ground_gr$is_called[subjectHits(olaps)] = TRUE
+
+    df = as.data.frame(ground_gr)
+    ggplot(df, aes(x = is_called, y = score)) + geom_point()
+}
+
+
+# all_corr = rbindlist(all_res, use.names = TRUE, idcol = "sample")
 # ggplot(all_corr[sample == unique(all_corr$sample)[12]],
 #        aes(x = shift, y = correlation, group = shift)) +
 #     geom_boxplot() +
 #     facet_wrap("sample")
 
-all_corr = all_corr[!is.nan(correlation)]
-range(all_corr$correlation)
+# all_corr = all_corr[!is.nan(correlation)]
+# range(all_corr$correlation)
 
+
+full_corr = lapply(all_corr, function(x)x$full_correlation_results)
+names(full_corr) = todo_df$sample
+full_corr = rbindlist(full_corr, use.names = TRUE, idcol = "sample")
 
 library(ggplot2)
-
-pdf(paste0("results2/crosscorr_", data_source, ".pdf"))
+dir.create("results_sim", showWarnings = FALSE)
+pdf(paste0("results_sim/crosscorrSim_", data_source, ".pdf"))
 for(i in seq_len(nrow(todo_df))){
     samp = todo_df$sample[i]
     # samp = unique(all_corr$sample)[i]
-    rl = all_res[[i]]$read_length
-    fl = all_res[[i]]$fragment_length
+    rl = all_corr[[i]]$read_length
+    fl = all_corr[[i]]$fragment_length
     ylim = c(-.5, 1)
-    p = seqsetvis::ssvSignalBandedQuantiles(all_corr[sample == samp],
+    # full_corr = all_corr[[i]]$full_correlation_results
+    p = seqsetvis::ssvSignalBandedQuantiles(full_corr[sample == samp],
                                             x_ = "shift", y_ = "correlation", by_ = "sample",
                                             hsv_symmetric = TRUE, hsv_grayscale = TRUE, hsv_reverse = TRUE) +
         labs(title = samp) + guides(fill = "none") +
@@ -211,17 +233,52 @@ for(i in seq_len(nrow(todo_df))){
         annotate("label", x = fl, y = mean(ylim), color = 'red', label = "fragment")
     print(p)
 
-    p = ggplot(all_corr[sample == samp][id %in% sample(unique(id), 500)], aes(x = shift, y = correlation, group = id)) + geom_path(alpha = .05, size = 3, color = "black") +
+    p = ggplot(full_corr[sample == samp][id %in% sample(unique(id), min(500, length(unique(id))))], aes(x = shift, y = correlation, group = id)) + geom_path(alpha = .05, size = 3, color = "black") +
         labs(title = samp) + guides(fill = "none")
     print(p)
 
-    p = seqsetvis::ssvSignalHeatmap(all_corr[sample == samp], max_cols = Inf, nclust = 2, max_rows = Inf,
+    p = seqsetvis::ssvSignalHeatmap(full_corr[sample == samp], max_cols = Inf, nclust = 2, max_rows = Inf,
                                     column_ = "shift", row_ = "id",
-                                    facet_ = "sample", fill_ = "correlation")
+                                    facet_ = "treatment", fill_ = "correlation")
     print(p)
 }
 dev.off()
 
+all_qdt = lapply(all_qdt, function(x)x[, !grepl("group", colnames(x)), with = FALSE])
+names(all_qdt) = todo_df$sample
+all_qdt = rbindlist(all_qdt, use.names = TRUE, idcol = "sample")
+all_qdt[, ver := sub("_.+", "", sample)]
+all_qdt[, name := paste(ver, name)]
+
+all_qdt[, seqnames := ver]
+
+true_gr =  seqsetvis::easyLoad_bed(paste0("simulation/genomes/simGenome10M_v3/peaks/simPeaks_v", 1:10, ".bed"))
+names(true_gr) = paste0("V", 1:10)
+true_dt = lapply(true_gr, as.data.table)
+true_dt = rbindlist(true_dt, use.names = TRUE, idcol = "ver")
+true_dt[, seqnames := ver]
+true_gr = GRanges(true_dt)
+
+olaps = findOverlaps(GRanges(all_qdt), true_gr)
+all_qdt$is_true = FALSE
+all_qdt$is_true[queryHits(olaps)] = TRUE
+
+all_qdt$is_refined = FALSE
+all_qdt[stable_frag_corr > .8 &
+            # flex_frag_corr_input < .8 &
+            flex_frag_len  > 150 & flex_frag_len < 225,
+        is_refined := TRUE]
+
+
+ggplot(all_qdt, aes(x = stable_frag_corr - stable_frag_corr_input,
+                    y = log10(qValue),
+                    color = is_true)) +
+    geom_point() + labs(title = "called peaks") + facet_wrap("is_true")
+
+ggplot(all_qdt, aes(x = flex_frag_len,
+                    y = log10(qValue),
+                    color = is_true)) +
+    geom_point() + labs(title = "called peaks") + facet_grid("is_true~is_refined")
 # for(i in seq_len(nrow(todo_df))){
 #     bam_file = todo_df$bam[i]
 #     print(bam_file)

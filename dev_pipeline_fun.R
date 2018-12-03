@@ -8,7 +8,8 @@ library(BiocFileCache)
 
 pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 50, ncores = 16, gen = "hg38",
                     to_score = c("signalValue", "qValue", "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len"),
-                    frag_max = 250, pdfname = paste0("results2/motif_res_", sub(".bam", "", basename(bam_file)), ".pdf")){
+                    frag_max = 250, pdfname = paste0("results2/motif_res_", sub(".bam", "", basename(bam_file)), ".pdf"),
+                    skip_motif = FALSE){
     # if(file.exists(pdfname)) return()
     # prep query granges
 
@@ -98,20 +99,6 @@ pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 
 
     format(object.size(corr_res$full_correlation_results), units = "GB")
 
-    if(gen == "hg38"){
-        library(PWMEnrich.Hsapiens.background)
-        data(PWMLogn.hg19.MotifDb.Hsap)
-        library(BSgenome.Hsapiens.UCSC.hg38)
-        pwm = PWMLogn.hg19.MotifDb.Hsap
-        seq = Hsapiens
-    }else if(gen == "mm10"){
-        library(PWMEnrich.Mmusculus.background)
-        data(PWMLogn.mm9.MotifDb.Mmus)
-        library(BSgenome.Mmusculus.UCSC.mm10)
-        pwm = PWMLogn.mm9.MotifDb.Mmus
-        seq = Mmusculus
-    }
-    nbases = 200
     qdt = scoreMetrics(corr_res, base_gr)
 
     tmp = qgr
@@ -144,6 +131,23 @@ pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 
 
     qdt = merge(qdt, pulldown_dt, by.x = "name", by.y = "id")
     qdt = merge(qdt, input_dt, by.x = "name", by.y = "id")
+
+    if(skip_motif) return(list(qdt = qdt, corr_res = corr_res))
+
+    if(gen == "hg38"){
+        library(PWMEnrich.Hsapiens.background)
+        data(PWMLogn.hg19.MotifDb.Hsap)
+        library(BSgenome.Hsapiens.UCSC.hg38)
+        pwm = PWMLogn.hg19.MotifDb.Hsap
+        seq = Hsapiens
+    }else if(gen == "mm10"){
+        library(PWMEnrich.Mmusculus.background)
+        data(PWMLogn.mm9.MotifDb.Mmus)
+        library(BSgenome.Mmusculus.UCSC.mm10)
+        pwm = PWMLogn.mm9.MotifDb.Mmus
+        seq = Mmusculus
+    }
+    nbases = 200
 
     todo_groups = colnames(qdt)[grepl("group", colnames(qdt))]
     dt_motif = calcMotifEnrichment(corr_res, base_gr, qdt, todo_groups,

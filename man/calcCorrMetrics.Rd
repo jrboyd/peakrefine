@@ -5,7 +5,8 @@
 \title{Title}
 \usage{
 calcCorrMetrics(bam_file, qgr, frag_min, frag_max, bam_md5 = NULL,
-  cache_path = "~/.cache_peakrefine", cach_version = "v1",
+  qgr_md5 = NULL, cache_path = "~/.cache_peakrefine",
+  cach_version = "v1", force_overwrite = FALSE,
   n_splits = getOption("mc.cores", 1L))
 }
 \arguments{

@@ -4,7 +4,7 @@
 \alias{scoreMetrics}
 \title{Title}
 \usage{
-scoreMetrics(corr_res, base_gr)
+scoreMetrics(corr_res, base_gr, seed = 0)
 }
 \arguments{
 \item{base_gr}{}

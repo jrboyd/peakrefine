@@ -57,6 +57,7 @@ my_writeFASTQ = function(read, quality, name, file, append = FALSE, block_size =
 }
 
 make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05, no_binding = FALSE){
+    message("genome length ", length(genome[[1]]))
     set.seed(seed)
     transition <- list(Binding=c(Background=1), Background=c(Binding= bind_p, Background= 1 - bind_p))
     transition <- lapply(transition, "class<-", "StateDistribution")
@@ -64,8 +65,8 @@ make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05, no_bindin
     init <- c(Binding=0, Background=1)
     class(init) <- "StateDistribution"
 
-    backgroundFeature <<- function(start, length=1000, shape=1, scale=20){
-        weight <- rgamma(1, shape=1, scale=20)
+    backgroundFeature <<- function(start, length=200, shape=1, scale=20){
+        weight <- rgamma(1, shape=shape, scale=scale)
         params <- list(start = start, length = length, weight = weight)
         class(params) <- c("Background", "SimulatedFeature")
 
@@ -134,33 +135,79 @@ make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05, no_bindin
     myFunctions <- ChIPsim::defaultFunctions()
     myFunctions$readSequence <- dfReads
 
-    # featureArgs <<- list(generator=generator, transition=transition, init=init, start = 0,
-    #                      length = 1e6, globals=list(shape=1, scale=20), experimentType="TFExperiment",
-    #                      lastFeat=c(Binding = FALSE, Background = TRUE), control=list(Binding=list(length=50)))
     readDensArgs <<- list(fragment=fragLength, bind = 50, minLength = 150, maxLength = 250,
                           meanLength = 200)
-
+    set.seed(seed)
     features <- ChIPsim::placeFeatures(generator, transition, init, start = 0, length = 1e6, globals=list(shape=1, scale=20),
                                        experimentType="TFExperiment", lastFeat=c(Binding = FALSE, Background = TRUE),
                                        control=list(Binding=list(length=50)))
-    # if(no_binding){#remove binding
-    #     k = sapply(features, function(x)class(x)[1]) == "Background"
-    #     features = features[k]
-    #         }
 
     myFunctions$features = function(...)features
 
-    # dens <- ChIPsim::feat2dens(features)
-    # readDens <- ChIPsim::bindDens2readDens(dens, fragLength, bind = 50, minLength = 150, maxLength = 250,
-    #                                        meanLength = 200)
-
-
-    set.seed(seed)
+    set.seed(Sys.time())
     simulated <- ChIPsim::simChIP(n_reads, genome, file = "", functions = myFunctions,
                                   control = ChIPsim::defaultControl(readDensity=readDensArgs))
 
     print(table(sapply(simulated$features[[1]], function(x)class(x)[1])))
 
     simulated
+}
+
+library(GenomicRanges)
+library(Biostrings)
+library(pbapply)
+
+#' makes a simulated set of reads for input fasta
+#' every position is equally likely to be output
+#'
+#' @param gen_fasta path to fasta file
+#' @param nreads number of reads to return
+#' @param readSize size of reads to return
+#' @param plusStrandRatio ratio of plus to minus reads. 1 means 1:1 - an even split. 2 means 2:1 - 2/3 of reads will be plus.
+#'
+#' @return list of read info
+#' read - sequence
+#' name - name of reads
+#' qual - quality - default is I.
+#' @export
+#'
+#' @examples
+make_unif_sim = function(
+    gen_fasta = "simulation/genomes/simGenome10M_v3/simGenome10M_v3.fa",
+    nreads = 50000,
+    readSize = 50,
+    qual_char = "I",
+    plusStrandRatio = 1){
+
+    strand_cut = (plusStrandRatio) / (1 + plusStrandRatio)
+    mySeq = readDNAStringSet(gen_fasta)
+
+    myComp = complement(mySeq)
+
+    mySeq = sub("^N+", "", mySeq)
+    myComp = sub("^N+", "", myComp)
+
+    mySplit = strsplit(mySeq, "")[[1]]
+    mySplitComp = strsplit(myComp, "")[[1]]
+
+    todo_df = data.frame("index" = sample(MAX, size = nreads, replace = TRUE),
+                         "strand" = sample(c("+","-"), nreads, prob = c(plusStrandRatio, 1), replace = TRUE))
+
+    MAX = nchar(mySeq) - readSize + 1
+
+    tmp = matrix(unlist(pblapply(seq_len(nrow(todo_df)), function(i){#~5s per 1k
+        itr = todo_df[i, "index"]
+        rn = paste0("read_", i)
+        if(todo_df[i, "strand"] == "+"){
+            seq = paste(x = mySplit[itr:(itr + readSize  - 1)], collapse = "")
+        }else{
+            seq = paste(x = mySplitComp[itr:(itr + readSize  - 1)], collapse = "")
+        }
+        c(rn, seq)
+    })), ncol = 2, byrow = TRUE)
+
+    qual = paste(rep(qual_char, nchar(tmp[1,2])), collapse = "")
+
+    list(read = tmp[,2], name = tmp[,1], quality = rep(qual, nrow(tmp)))
 }
 
