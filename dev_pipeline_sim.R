@@ -27,67 +27,19 @@ gen = "hg38"
 skip_motif = FALSE
 k = TRUE
 if(data_source == "sim"){
-    gen = "simGenome10M_v3"
+    gen = "simGenome10M_v4"
     skip_motif = TRUE
-    peaks = dir("simulation/genomes/simGenome10M_v3/output/", full.names = TRUE, pattern = "pooled$") %>%
-        dir(full.names = TRUE, pattern = "100000reads_200fe.+superLoose.+Peak$")
+    peaks = dir("simulation/genomes/simGenome10M_v5/output/", full.names = TRUE, pattern = "pooled$") %>%
+        dir(full.names = TRUE, pattern = "mediumLoose.+Peak$")
 
-    bams = dir("simulation/genomes/simGenome10M_v3/output/", full.names = TRUE, pattern = "pooled$") %>%
-        dir(full.names = TRUE, pattern = "100000reads_200fe.+bam$")
-    inputs = gsub("200fe", "input", bams)
+    bams = dir("simulation/genomes/simGenome10M_v5/output/", full.names = TRUE, pattern = "pooled$") %>%
+        dir(full.names = TRUE, pattern = "_1fe_pooled.bam$")
+    inputs = gsub("_[0-9]+fe_", "_input_", bams)
 
     peaks = normalizePath(peaks)
     bams = normalizePath(bams)
     inputs = normalizePath(inputs)
 
-}else if(data_source == "Jonathan"){
-    peaks = dir("/slipstream/home/jonathan/RUNX_META-ANALYSIS/MACS/", full.names = TRUE) %>%
-        dir(full.names = TRUE, pattern = "Peak$")# %>% dir(full.names = TRUE, pattern = "Peak$")
-
-    bams = paste0(file.path("/slipstream/home/jonathan/RUNX_META-ANALYSIS/BAMS", basename(dirname(peaks))), ".bam")
-}else if(data_source == "AF_runx"){
-    setwd(file.path("/slipstream/galaxy/uploads/working/qc_framework"))
-    peaks = c(
-        "output_AF_RUNX1_ChIP/AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled_peaks_passIDR.05.narrowPeak",
-        "output_AF_RUNX1_ChIP/AF-MCF10AT1_RUNX1_pooled/AF-MCF10AT1_RUNX1_pooled_peaks_passIDR.05.narrowPeak",
-        "output_AF_RUNX1_ChIP/AF-MCF10CA1_RUNX1_pooled/AF-MCF10CA1_RUNX1_pooled_peaks_passIDR.05.narrowPeak",
-        "output_Rasim_RUNX1/MCF7_RUNX1_pooled/MCF7_RUNX1_pooled_peaks_passIDR.05.narrowPeak"
-    )
-    peaks = normalizePath(peaks)
-    bams = sub("_peaks.+narrowPeak$", ".bam", peaks)
-    inputs = bams %>% gsub("RUNX1_pooled", "input_pooled", .)
-}else if(data_source == "bookmarking"){
-    setwd(file.path("/slipstream/galaxy/uploads/working/qc_framework"))
-    peaks = c(
-        "output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak",
-        "output_JR_bookmarking_full_RUNX1_U3369_masked/MCF10A-dmso_Runx1_pooled/MCF10A-dmso_Runx1_pooled_peaks.narrowPeak",
-        "output_JR_bookmarking_full_RUNX1_U3369_masked/MCF10A-released_Runx1_pooled/MCF10A-released_Runx1_pooled_peaks.narrowPeak"
-    )
-    peaks = normalizePath(peaks)
-    bams = sub("_peaks.narrowPeak$", ".bam", peaks)
-    inputs = bams %>% gsub("Runx1-4336BF", "input", .) %>% gsub("Runx1", "input", .)
-
-
-}else if(data_source == "k27ac"){
-    setwd(file.path("/slipstream/home/joeboyd/jonathan_MSC_k27ac_timecourse/"))
-    peaks = c("narrowcall/h3k27ac_bmsc_d0_pooled_peaks.narrowPeak",
-              "narrowcall/h3k27ac_bmsc_d21_pooled_peaks.narrowPeak")
-    peaks = normalizePath(peaks)
-    bams = c("MS_MSC_HISTONE_CODE_DATA_HWJG/H3K27AC/h3k27ac_bmsc_d0_COMB_GAII_sequence_sort_bowtie2_mm10.bam",
-             "MS_MSC_HISTONE_CODE_DATA_HWJG/H3K27AC/h3k27ac_bmsc_d21_COMB_GAII_sequence_sort_bowtie2_mm10.bam")
-    bams = normalizePath(bams)
-    inputs = c("MS_MSC_HISTONE_CODE_DATA_HWJG/INPUT/input_bmsc_SR100_d00_COMB_SE100_sequence_sort_bowtie2_mm10.bam",
-               "MS_MSC_HISTONE_CODE_DATA_HWJG/INPUT/input_bmsc_SR100_d21_COMB_SE100_sequence_sort_bowtie2_mm10.bam")
-    inputs = normalizePath(inputs)
-    gen = "mm10"
-    # library(GenomicRanges)
-    # library(data.table)
-    # load("~/jonathan_MSC_k27ac_timecourse/DB_csaw_results.JG_k27ac_v5.save")
-    # sel_gr = GRanges(comb_res$h3k27ac$`from d0 to d21`)
-    # library(seqsetvis)
-    # over_gr = ssvOverlapIntervalSets(easyLoad_narrowPeak(peaks), ext = 500)
-    # over_gr = subsetByOverlaps(over_gr, sel_gr)
-    # hist(width(over_gr), xlim = c(0,20000), breaks = 50)
 }
 setwd("~/R/peakrefine/")
 stopifnot(all(file.exists(peaks)))
@@ -127,7 +79,7 @@ if(exists("inputs")){
                          to_score = c("signalValue", "qValue",
                                       "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len",
                                       "stable_frag_corr_input", "flex_frag_corr_input", "read_corr_input", "flex_frag_len_input"),
-                         skip_motif = skip_motif)
+                         skip_motif = skip_motif, force_overwrite_corr = TRUE)
                 # get_corr_res(bam_file, qgr, cach_version)
             }
 
@@ -171,7 +123,7 @@ if(exists("inputs")){
     })
 }
 
-
+names(all_res) = todo_df$sample
 format(object.size(all_res), units = "GB")
 
 all_qdt = lapply(all_res, function(x)x$qdt)
@@ -181,9 +133,9 @@ all_corr = lapply(all_res, function(x)x$corr_res)
 
 for(i in seq_along(all_res)){
     ver = sub("_.+", "", names(all_res)[i]) %>% sub("V", "", .)
-    ground_file = paste0("simulation/genomes/simGenome10M_v3/peaks/simPeaks_v", ver, ".bed")
+    ground_file = paste0("simulation/genomes/simGenome10M_v4/peaks/simPeaks_v", ver, ".bed")
     ground_gr = rtracklayer::import.bed(ground_file)
-    corr_gr = GRanges(all_res[[i]])
+    corr_gr = GRanges(all_res[[i]]$qdt)
     olaps = findOverlaps(corr_gr, ground_gr)
     corr_gr$is_true = FALSE
     corr_gr$is_true[queryHits(olaps)] = TRUE
@@ -215,6 +167,7 @@ full_corr = rbindlist(full_corr, use.names = TRUE, idcol = "sample")
 library(ggplot2)
 dir.create("results_sim", showWarnings = FALSE)
 pdf(paste0("results_sim/crosscorrSim_", data_source, ".pdf"))
+full_corr[is.nan(correlation), correlation := 0]
 for(i in seq_len(nrow(todo_df))){
     samp = todo_df$sample[i]
     # samp = unique(all_corr$sample)[i]
@@ -252,7 +205,7 @@ all_qdt[, name := paste(ver, name)]
 
 all_qdt[, seqnames := ver]
 
-true_gr =  seqsetvis::easyLoad_bed(paste0("simulation/genomes/simGenome10M_v3/peaks/simPeaks_v", 1:10, ".bed"))
+true_gr =  seqsetvis::easyLoad_bed(paste0("simulation/genomes/simGenome10M_v4/peaks/simPeaks_v", 1:10, ".bed"))
 names(true_gr) = paste0("V", 1:10)
 true_dt = lapply(true_gr, as.data.table)
 true_dt = rbindlist(true_dt, use.names = TRUE, idcol = "ver")
@@ -270,10 +223,10 @@ all_qdt[stable_frag_corr > .8 &
         is_refined := TRUE]
 
 
-ggplot(all_qdt, aes(x = stable_frag_corr - stable_frag_corr_input,
+ggplot(all_qdt[grepl("_10fe", sample)], aes(x = stable_frag_corr ,
                     y = log10(qValue),
                     color = is_true)) +
-    geom_point() + labs(title = "called peaks") + facet_wrap("is_true")
+    geom_point(alpha = .2) + labs(title = "called peaks") + facet_wrap("is_true")
 
 ggplot(all_qdt, aes(x = flex_frag_len,
                     y = log10(qValue),

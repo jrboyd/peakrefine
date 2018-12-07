@@ -66,7 +66,7 @@ make_sim = function(genome, n_reads, f_enrich, seed = 1, bind_p = .05, no_bindin
     class(init) <- "StateDistribution"
 
     backgroundFeature <<- function(start, length=200, shape=1, scale=20){
-        weight <- rgamma(1, shape=shape, scale=scale)
+        weight <- 0#rgamma(1, shape=shape, scale=scale)
         params <- list(start = start, length = length, weight = weight)
         class(params) <- c("Background", "SimulatedFeature")
 
@@ -180,7 +180,11 @@ make_unif_sim = function(
     plusStrandRatio = 1){
 
     strand_cut = (plusStrandRatio) / (1 + plusStrandRatio)
-    mySeq = readDNAStringSet(gen_fasta)
+    if(is.character(gen_fasta)){
+        mySeq = readDNAStringSet(gen_fasta)
+    }else{
+        mySeq = gen_fasta
+    }
 
     myComp = complement(mySeq)
 
@@ -190,10 +194,10 @@ make_unif_sim = function(
     mySplit = strsplit(mySeq, "")[[1]]
     mySplitComp = strsplit(myComp, "")[[1]]
 
-    todo_df = data.frame("index" = sample(MAX, size = nreads, replace = TRUE),
-                         "strand" = sample(c("+","-"), nreads, prob = c(plusStrandRatio, 1), replace = TRUE))
 
     MAX = nchar(mySeq) - readSize + 1
+    todo_df = data.frame("index" = sample(MAX, size = nreads, replace = TRUE),
+                         "strand" = sample(c("+","-"), nreads, prob = c(plusStrandRatio, 1), replace = TRUE))
 
     tmp = matrix(unlist(pblapply(seq_len(nrow(todo_df)), function(i){#~5s per 1k
         itr = todo_df[i, "index"]

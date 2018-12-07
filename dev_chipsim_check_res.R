@@ -5,7 +5,7 @@ library(seqsetvis)
 library(magrittr)
 library(GenomicRanges)
 library(data.table)
-res_dir = "~/R/peakrefine/simulation/genomes/simGenome10M_v3"
+res_dir = "~/R/peakrefine/simulation/genomes/simGenome10M_v5"
 ver = 1
 
 all_qgr = lapply(1:10, function(ver){
@@ -19,14 +19,14 @@ sum(lengths(all_qgr))
 
 dt_stats = lapply(1:10, function(ver){
     peaks = dir(file.path(res_dir, "peaks"), pattern = paste0("simPeaks_v", ver, ".bed"), full.names = TRUE)
-    bg = dir(file.path(res_dir, "peaks"), pattern = paste0("simBg_v", ver, ".bed"), full.names = TRUE)
+    # bg = dir(file.path(res_dir, "peaks"), pattern = paste0("simBg_v", ver, ".bed"), full.names = TRUE)
     qgr = rtracklayer::import.bed(peaks)
     qgr = resize(qgr, 1200, fix = "center")
-    bgr = rtracklayer::import.bed(bg)
+    # bgr = rtracklayer::import.bed(bg)
 
 
-    vals = c(qgr$score, bgr$score/20)
-    grps = c(rep("peak", length(qgr)), rep("bg", length(bgr)))
+    # vals = c(qgr$score, bgr$score/20)
+    # grps = c(rep("peak", length(qgr)), rep("bg", length(bgr)))
     # boxplot(vals ~ grps)
 
 
@@ -36,13 +36,15 @@ dt_stats = lapply(1:10, function(ver){
     # nps = dir(file.path(res_dir, "output"), pattern = paste0("V", ver, "_.+R1$"), full.names = TRUE) %>% dir(pattern = "loose.+Peak$", full.names = TRUE)
     # names(nps) = basename(nps) %>% sub("_R1_loose_peaks.narrowPeak", "", .) %>% sub("000reads", "k", .)
 
-    bams = dir(file.path(res_dir, "output"), pattern = paste0("V", ver, "_.+pooled$"), full.names = TRUE) %>% dir(pattern = ".bam$", full.names = TRUE)
+    bams = dir(file.path(res_dir, "output"), pattern = paste0("V", ver, "_.+pooled$"), full.names = TRUE) %>%
+        dir(pattern = ".bam$", full.names = TRUE)
 
-    nps = dir(file.path(res_dir, "output"), pattern = paste0("V", ver, "_.+pooled$"), full.names = TRUE) %>% dir(pattern = "superLoose.+Peak$", full.names = TRUE)
-    names(nps) = basename(nps) %>% sub("_pooled_superLoose_peaks.narrowPeak", "", .) %>% sub("000reads", "k", .)
+    nps = dir(file.path(res_dir, "output"), pattern = paste0("V", ver, "_.+pooled$"), full.names = TRUE) %>%
+        dir(pattern = "medium.+Peak$", full.names = TRUE)
+    names(nps) = basename(nps) %>% sub("peaks.narrowPeak", "", .) %>% sub("000reads", "k", .)
 
     dt = data.table(name = names(nps))
-    dt[, c("ver", "nreads", "fe") := tstrsplit(name, "_")]
+    dt[, c("ver", "nreads", "fe") := tstrsplit(name, "_", keep = 1:3)]
     dt[, nreads := as.numeric(sub("k", "", nreads))]
     dt[, fe := as.numeric(sub("fe", "", fe))]
     dt = dt[order(fe)][order(nreads)]
@@ -69,7 +71,7 @@ dt_stats = lapply(1:10, function(ver){
 
     dt_stats = melt(dt_stats, id.vars = "variable", variable.name = "stat")
 
-    dt_stats[, c("version", "nreads", "fe") := tstrsplit(variable, "_")]
+    dt_stats[, c("version", "nreads", "fe") := tstrsplit(variable, "_", keep = 1:3)]
 
     numsortFactor = function(fact){
         fact = factor(fact)
@@ -95,7 +97,7 @@ dt_stats = dt_stats[, .(value = sum(value)), by = .(stat, nreads, fe)]
 
 ggplot(dt_stats[stat != "true_neg" & stat != "false_neg" & stat != "total"],
        aes(x = fe, y = value, color = stat, size = nreads)) +
-    geom_point(shape = 21) + theme_classic()
+    geom_point(shape = 21) + theme_classic() + facet_wrap("stat", scales = "free_y")
 
 dt_stats[, key := paste(nreads, fe)]
 

@@ -76,6 +76,8 @@ crossCorrByRle = function(bam_file,
                          byrow = FALSE,
                          nrow = length(fragment_sizes),
                          ncol = length(query_gr))
+    ShiftMatCor[is.nan(ShiftMatCor)] = 0
+
     colnames(ShiftMatCor) = query_gr$name
     rownames(ShiftMatCor) = fragment_sizes
     shift_dt = as.data.table(ShiftMatCor, keep.rownames = TRUE)
@@ -171,7 +173,7 @@ calcCorrMetrics = function(bam_file, qgr, frag_min, frag_max,
         nper = ceiling(length(qgr) / n_splits)
         grps = ceiling(seq_along(qgr)/ nper)
         table(grps)
-
+        # browser()
         rl = getReadLength(bam_file, qgr)
         lres = parallel::mclapply(unique(grps), function(g){
             k = grps == g

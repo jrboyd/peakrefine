@@ -4,8 +4,9 @@ library(magrittr)
 
 theme_set(theme_classic())
 cach_version = "v8"
-data_source = "sim"
-
+# data_source = "bookmarking_vs_blocked"
+data_source = "AF_runx"
+ncores = 32
 # bam_file = "~/ENCODE_EGR1/K562_EGR1_myers_rep1_ENCFF645IYJ.bam"
 # qgr = rtracklayer::import("~/ENCODE_EGR1/K562_EGR1_myers_rep1_ENCFF178PTI.bed", format = "narrowPeak")
 # pipeline(bam_file, qgr, cach_version)
@@ -26,6 +27,7 @@ suppressWarnings({
 gen = "hg38"
 skip_motif = FALSE
 k = TRUE
+frag_max = 250
 if(data_source == "sim"){
     gen = "simGenome10M_v3"
     skip_motif = TRUE
@@ -68,6 +70,22 @@ if(data_source == "sim"){
     inputs = bams %>% gsub("Runx1-4336BF", "input", .) %>% gsub("Runx1", "input", .)
 
 
+}else if(data_source == "bookmarking_vs_blocked"){
+    setwd(file.path("/slipstream/galaxy/uploads/working/qc_framework"))
+    peaks = c(
+        "output_JR_bookmarking_blocked_RUNX1_U13369masked/MCF10A-blocked_Runx1-4336BF_pooled/MCF10A-blocked_Runx1-4336BF_pooled_peaks.narrowPeak",
+        "output_JR_bookmarking_full_RUNX1_U3369_masked/MCF10A-dmso_Runx1_pooled/MCF10A-dmso_Runx1_pooled_peaks.narrowPeak",
+        "output_JR_bookmarking_full_RUNX1_U3369_masked/MCF10A-released_Runx1_pooled/MCF10A-released_Runx1_pooled_peaks.narrowPeak",
+        "output_AF_RUNX1_ChIP/AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled_peaks.narrowPeak",
+        "output_AF_RUNX1_ChIP/AF-MCF10AT1_RUNX1_pooled/AF-MCF10AT1_RUNX1_pooled_peaks.narrowPeak"
+    )
+    peaks = normalizePath(peaks)
+    bams = sub("_peaks.narrowPeak$", ".bam", peaks)
+    inputs = bams %>% gsub("Runx1-4336BF", "input", .) %>% gsub("Runx1", "input", .)
+    peaks = rep(peaks[1], length(peaks))
+    frag_max = 400
+
+
 }else if(data_source == "k27ac"){
     setwd(file.path("/slipstream/home/joeboyd/jonathan_MSC_k27ac_timecourse/"))
     peaks = c("narrowcall/h3k27ac_bmsc_d0_pooled_peaks.narrowPeak",
@@ -92,6 +110,7 @@ if(data_source == "sim"){
 setwd("~/R/peakrefine/")
 stopifnot(all(file.exists(peaks)))
 stopifnot(all(file.exists(bams)))
+force_overwrite_motif = TRUE
 if(exists("inputs")){
     stopifnot(all(file.exists(inputs)))
     todo_df = data.frame(bam = bams,
@@ -105,7 +124,7 @@ if(exists("inputs")){
         bam_file = todo_df$bam[i]
         input_file = todo_df$inputs[i]
         message(i, " ", bam_file)
-        frag_max = 250
+        # frag_max = 250
 
 
         if(file.exists(paste0(bam_file, ".bai"))){
@@ -116,18 +135,18 @@ if(exists("inputs")){
             }
 
             if(i %in% k){
-                pipeline(bam_file, qgr, cach_version, frag_max = 500, inputs_file = input_file, gen = gen,
+                pipeline(bam_file, qgr, cach_version, frag_max = 500, inputs_file = input_file, gen = gen, ncores = ncores,
                          to_score = c("signalValue", "qValue",
                                       "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len",
                                       "stable_frag_corr_input", "flex_frag_corr_input", "read_corr_input", "flex_frag_len_input"),
-                         skip_motif = skip_motif)
+                         skip_motif = skip_motif, force_overwrite_motif = force_overwrite_motif)
                 # get_corr_res(bam_file, qgr, cach_version, frag_max = 500)
             }else{
-                pipeline(bam_file, qgr, cach_version, inputs_file = input_file, gen = gen,
+                pipeline(bam_file, qgr, cach_version, inputs_file = input_file, gen = gen, ncores = ncores, frag_max = frag_max,
                          to_score = c("signalValue", "qValue",
                                       "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len",
                                       "stable_frag_corr_input", "flex_frag_corr_input", "read_corr_input", "flex_frag_len_input"),
-                         skip_motif = skip_motif)
+                         skip_motif = skip_motif, force_overwrite_motif = force_overwrite_motif)
                 # get_corr_res(bam_file, qgr, cach_version)
             }
 
@@ -157,12 +176,12 @@ if(exists("inputs")){
             }
 
             if(i %in% k){
-                pipeline(bam_file, qgr, cach_version, frag_max = 500, gen = gen,
-                         skip_motif = skip_motif)
+                pipeline(bam_file, qgr, cach_version, frag_max = 500, gen = gen, ncores = ncores,
+                         skip_motif = skip_motif, force_overwrite_motif = force_overwrite_motif)
                 # get_corr_res(bam_file, qgr, cach_version, frag_max = 500)
             }else{
-                pipeline(bam_file, qgr, cach_version, gen = gen,
-                         skip_motif = skip_motif)
+                pipeline(bam_file, qgr, cach_version, gen = gen, ncores = ncores, frag_max = frag_max,
+                         skip_motif = skip_motif, force_overwrite_motif = force_overwrite_motif)
                 # get_corr_res(bam_file, qgr, cach_version)
             }
 
@@ -193,7 +212,7 @@ range(all_corr$correlation)
 
 library(ggplot2)
 
-pdf(paste0("results2/crosscorr_", data_source, ".pdf"))
+pdf(paste0("results3/crosscorr_", data_source, ".pdf"))
 for(i in seq_len(nrow(todo_df))){
     samp = todo_df$sample[i]
     # samp = unique(all_corr$sample)[i]
