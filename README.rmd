@@ -7,10 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 ```
 
-# peakrefine
 Refining peaks using metrics derived from Strand Cross-Correlation (SCC)
-
-devtools::install_github("jrboyd/peakrefine")
 
 ## Installation:
 ```{r install}
@@ -19,37 +16,84 @@ if(!require(devtools))
 devtools::install_github("jrboyd/peakrefine")
 ```
 
-## Usage
+## Basic Usage
 ```{r use}
 bam_file = "path/to/your/bam" #must be indexed
 peaks_gr = rtracklayer::import("path/to/your/peaks")
-peakrefine::calcCorrMetrics(bam_file, peaks_gr, frag_min = 50, frag_max = 300)
+corr_res = peakrefine::calcSCCMetrics(bam_file, peaks_gr, frag_sizes = 50:250)
+```
+
+Run this way, 100 peaks will take a bit under a minute.
+
+Results will be automatically cached using BiocFileCache such that repeated 
+calls with identical parameters load previous results.
+
+## Running in parallel
+
+peakrefine uses the mc.cores option to automatically split up peaks for
+calculations.  If you run into memory or similar issues you should set n_splits
+to a multiple of mc.cores (this applies to running in serial as well).  
+The default is 1 job per core which may prove
+too large.
+
+```{r use_adv}
+ncores = max(1, parallel::detectCores() - 1)
+options(mc.cores = ncores)
+peakrefine::calcSCCMetrics(bam_file, peaks_gr, frag_sizes = 50:250, n_splits = ncores * 3)
 ```
 
 ```{r use_real, echo=FALSE, eval=TRUE}
-bam_file = "path/to/your/bam" #must be indexed
-peaks_gr = rtracklayer::import("path/to/your/peaks")
-peakrefine::calcCorrMetrics(bam_file, peaks_gr, frag_min = 50, frag_max = 300)
+bam_file = "simulation/qc_framework/output_AF_RUNX1_ChIP/AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled.bam" #must be indexed
+peaks_gr = rtracklayer::import("simulation/qc_framework/output_AF_RUNX1_ChIP/AF-MCF10A_RUNX1_pooled/AF-MCF10A_RUNX1_pooled_peaks.narrowPeak")
+set.seed(1)
+peaks_gr = sample(peaks_gr, 100)
+options(mc.cores = 20)
+corr_res = peakrefine::calcSCCMetrics(bam_file, peaks_gr, frag_sizes = 50:250)
 ```
 
-## GitHub Documents
+## Using the output
 
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
-
-## Including Code
-
-You can include R code in the document as follows:
-
-```{r cars}
-summary(cars)
+```{r setup2, include=FALSE, eval=TRUE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 ```
 
-## Including Plots
+Output is a named list:
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+cbind(names(corr_res))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Getting read and fragment lengths:
+
+```{r}
+corr_res$read_length
+corr_res$fragment_length
+```
+
+Other list items are data.tables:
+
+```{r}
+sapply(corr_res, class)
+```
+
+We'll need a couple more libraries here.
+
+```{r}
+library(data.table)
+library(ggplot2)
+```
+
+```{r}
+metrics_dt = rbindlist(corr_res[3:5], use.names = TRUE, idcol = "metric")
+theme_set(theme_classic())
+ggplot(metrics_dt, aes(x = metric, y = correlation, color = metric)) + geom_boxplot()
+```
+
+Stable fragment correlation uses the calculated fragment size while flex always
+uses the fragment size with the maximum SCC. Flex will report high correlation
+from artifact peaks but is useful for assessing fragment size distribution.
+
+```{r}
+ggplot(metrics_dt, aes(x = metric, y = shift, color = metric)) + geom_boxplot()
+```
+
