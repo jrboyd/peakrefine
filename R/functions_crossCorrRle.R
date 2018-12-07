@@ -3,7 +3,7 @@
 #' @param bam_file character. Path to .bam file, must have index at .bam.bai.
 #' @param query_gr GRanges.  Regions to calculate cross correlation for.
 #' @param max_dupes integer.  Duplicate reads above this value will be removed.
-#' @param fragment_range integer.  fragment size range to search for maximum
+#' @param fragment_sizes integer.  fragment size range to search for maximum
 #'   correlation.
 #' @param read_length integer. Any values outside fragment_range that must be
 #'   searched.  If not supplied will be determined from bam_file.  Set as NA
@@ -22,7 +22,7 @@
 crossCorrByRle = function(bam_file,
                           query_gr,
                           max_dupes = 1,
-                          fragment_range = 50:300,
+                          fragment_sizes = 50:300,
                           read_length = NULL,
                           include_plots = TRUE){
     rn = NULL # reserve for data.table
@@ -54,8 +54,7 @@ crossCorrByRle = function(bam_file,
     if(is.na(read_length)){
         read_length = numeric()
     }
-    fragment_range = range(fragment_range)
-    fragment_sizes = union(read_length, seq(fragment_range[1], fragment_range[2]))
+    fragment_sizes = sort(union(read_length, fragment_sizes))
 
     PosCoverage <- coverage(GenomicRanges::shift(GRanges(temp[strand(temp)=="+"])), -read_length)
     PosCoverage = PosCoverage[query_gr]
@@ -144,6 +143,65 @@ gather_metrics = function(peak_strand_corr, read_length = NULL){
 #'
 #' @param bam_file
 #' @param qgr
+#' @param frag_sizes
+#' @param fetch_size
+#' @param bam_md5
+#' @param qgr_md5
+#' @param cache_path
+#' @param cach_version
+#' @param force_overwrite
+#' @param n_splits
+#'
+#' @return
+#' @export
+#'
+#' @examples
+calcSCCMetrics = function(bam_file, qgr, frag_sizes, fetch_size = 3*max(frag_sizes),
+                          bam_md5 = NULL, qgr_md5 = NULL,
+                          cache_path = "~/.cache_peakrefine",
+                          cach_version = "v1", force_overwrite = FALSE,
+                          n_splits = getOption("mc.cores", 1L)){
+    if(is.null(bam_md5)){
+        bam_md5 = tools::md5sum(bam_file)
+    }
+    if(is.null(qgr_md5)){
+        qgr_md5 = digest::digest(qgr)
+    }
+    if(fetch_size <= max(frag_sizes)){
+        stop("fetch_size (", fetch_size, ") must exceed max of frag_sizes (", max(frag_sizes), ").")
+    }
+    stopifnot(file.exists(bam_file))
+    stopifnot(class(qgr) == "GRanges")
+    if(!file.exists(paste0(bam_file, ".bai"))){
+        stop("bam_file index not found. expected at ", paste0(bam_file, ".bai"),
+             "\ntry running:\nsamtools index ", bam_file)
+    }
+    stopifnot(n_splits >= 1)
+
+    qgr = resize(qgr, fetch_size, fix = 'center')
+
+    bfc_corr = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
+    corr_key = paste(qgr_md5, bam_md5, digest::digest(frag_sizes), fetch_size, cach_version, sep = "_")
+    corr_res = bfcif(bfc_corr, corr_key, function(){
+        message("cached results not found, gathering correlation info.")
+        nper = ceiling(length(qgr) / n_splits)
+        grps = ceiling(seq_along(qgr)/ nper)
+        table(grps)
+        # browser()
+        rl = getReadLength(bam_file, qgr)
+        lres = parallel::mclapply(unique(grps), function(g){
+            k = grps == g
+            crossCorrByRle(bam_file, qgr[k], fragment_sizes = frag_sizes, read_length = rl)
+        })
+        peak_strand_corr = rbindlist(lres)
+        gather_metrics(peak_strand_corr, rl)
+    }, force_overwrite = force_overwrite)
+}
+
+#' Title
+#'
+#' @param bam_file
+#' @param qgr
 #' @param frag_min
 #' @param frag_max
 #' @param bam_md5
@@ -155,31 +213,19 @@ gather_metrics = function(peak_strand_corr, read_length = NULL){
 #' @export
 #'
 #' @examples
-calcCorrMetrics = function(bam_file, qgr, frag_min, frag_max,
+calcCorrMetrics = function(bam_file, qgr, frag_min, frag_max, fetch_size = 3*frag_max,
                            bam_md5 = NULL, qgr_md5 = NULL,
                            cache_path = "~/.cache_peakrefine",
                            cach_version = "v1", force_overwrite = FALSE,
                            n_splits = getOption("mc.cores", 1L)){
-    if(is.null(bam_md5)){
-        bam_md5 = tools::md5sum(bam_file)
-    }
-    if(is.null(qgr_md5)){
-        qgr_md5 = digest::digest(qgr)
-    }
-    bfc_corr = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
-    corr_key = paste(qgr_md5, bam_md5, frag_min, frag_max, cach_version, sep = "_")
-    corr_res = bfcif(bfc_corr, corr_key, function(){
-        message("cached results not found, gathering correlation info.")
-        nper = ceiling(length(qgr) / n_splits)
-        grps = ceiling(seq_along(qgr)/ nper)
-        table(grps)
-        # browser()
-        rl = getReadLength(bam_file, qgr)
-        lres = parallel::mclapply(unique(grps), function(g){
-            k = grps == g
-            crossCorrByRle(bam_file, qgr[k], fragment_range = c(frag_min, frag_max), read_length = rl)
-        })
-        peak_strand_corr = rbindlist(lres)
-        gather_metrics(peak_strand_corr, rl)
-    }, force_overwrite = force_overwrite)
+    calcSCCMetrics(bam_file = bam_file,
+                   qgr = qgr,
+                   frag_sizes = seq(frag_min, frag_max),
+                   fetch_size = fetch_size,
+                   bam_md5 = bam_md5,
+                   qgr_md5 = qgr_md5,
+                   cache_path = cache_path,
+                   cach_version = cach_version,
+                   force_overwrite = force_overwrite,
+                   n_splits = n_splits)
 }

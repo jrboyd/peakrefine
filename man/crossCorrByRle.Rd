@@ -5,7 +5,7 @@
 \title{Calculate cross correlation by extending reads}
 \usage{
 crossCorrByRle(bam_file, query_gr, max_dupes = 1,
-  fragment_range = 50:300, read_length = NULL, include_plots = TRUE)
+  fragment_sizes = 50:300, read_length = NULL, include_plots = TRUE)
 }
 \arguments{
 \item{bam_file}{character. Path to .bam file, must have index at .bam.bai.}
@@ -14,7 +14,7 @@ crossCorrByRle(bam_file, query_gr, max_dupes = 1,
 
 \item{max_dupes}{integer.  Duplicate reads above this value will be removed.}
 
-\item{fragment_range}{integer.  fragment size range to search for maximum
+\item{fragment_sizes}{integer.  fragment size range to search for maximum
 correlation.}
 
 \item{read_length}{integer. Any values outside fragment_range that must be

@@ -7,19 +7,19 @@
 #'
 #' @return
 #' @export
-#'
+#' @import BiocFileCache
 #' @examples
 bfcif = function(bfc, rname, FUN, force_overwrite = FALSE){
     # is rname in cache?
-    if(nrow(bfcquery(bfc, query = rname, field = "rname")) == 0){
-        cache_path = bfcnew(bfc, rname = rname)
+    if(nrow(BiocFileCache::bfcquery(bfc, query = rname, field = "rname")) == 0){
+        cache_path = BiocFileCache::bfcnew(bfc, rname = rname)
 
     }else{
-        cache_path = bfcrpath(bfc, rname)
+        cache_path = BiocFileCache::bfcrpath(bfc, rname)
     }
     # does cached file exist?
     if(file.exists(cache_path) && !force_overwrite){
-        load(bfcrpath(bfc, rname))
+        load(BiocFileCache::bfcrpath(bfc, rname))
     }else{
         res = FUN()
         save(res, file = cache_path)

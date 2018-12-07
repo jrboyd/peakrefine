@@ -13,6 +13,7 @@ LazyData: true
 RoxygenNote: 6.1.0
 Depends: R (>= 3.4), ggplot2, GenomicRanges
 Imports: 
+    BiocFileCache,
     data.table, 
     eulerr, 
     GenomicAlignments,
