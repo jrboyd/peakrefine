@@ -85,7 +85,7 @@ library(data.table)
 library(ggplot2)
 ```
 
-```{r metric_corr}
+```{r metric_corr, echo=FALSE}
 metrics_dt = rbindlist(corr_res[3:5], use.names = TRUE, idcol = "metric")
 theme_set(theme_classic())
 ggplot(metrics_dt, aes(x = metric, y = correlation, color = metric)) + geom_boxplot()
