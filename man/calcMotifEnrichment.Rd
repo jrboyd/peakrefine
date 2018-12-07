@@ -5,9 +5,9 @@
 \title{Title}
 \usage{
 calcMotifEnrichment(corr_res, base_gr, qdt, todo_groups, pwm, seq, bam_md5,
-  qgr_md5 = NULL, nbases = 200, ncores = 8,
-  cache_path = "~/.cache_peakrefine", force_overwrite = FALSE,
-  force_overwrite_pre = FALSE, cach_version = "v1")
+  nbases = 200, ncores = 8, cache_path = "~/.cache_peakrefine",
+  force_overwrite = FALSE, force_overwrite_pre = FALSE,
+  cach_version = "v1")
 }
 \arguments{
 \item{cach_version}{}

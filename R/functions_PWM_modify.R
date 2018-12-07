@@ -3,7 +3,7 @@
 #'
 #' @param query_gr GRanges.  Regions to calculate cross correlation for.
 #' @param pwm a position weight matrix object to pass to
-#'   \code{\link{[PWMEnrich]{motifEnrichment}}}.
+#'   \code{\link[PWMEnrich]{motifEnrichment}}.
 #' @param nbases number of bases around center of query_gr regions to consider
 #'   for motif enrichment.
 #' @param ncores number of computer cores to use.

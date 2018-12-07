@@ -12,7 +12,7 @@ pre_motif(query_gr, pwm, seq_reference, nbases = 200, ncores = 32,
 \item{query_gr}{GRanges.  Regions to calculate cross correlation for.}
 
 \item{pwm}{a position weight matrix object to pass to
-\code{\link{[PWMEnrich]{motifEnrichment}}}.}
+\code{\link[PWMEnrich]{motifEnrichment}}.}
 
 \item{nbases}{number of bases around center of query_gr regions to consider
 for motif enrichment.}
