@@ -1,8 +1,7 @@
 ---
 title: "peakrefine"
 output:   
-    html_document:
-    keep_md: true
+    github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -85,13 +84,12 @@ library(data.table)
 library(ggplot2)
 ```
 
-```{r metric_corr, echo=FALSE}
+```{r metric_corr}
 metrics_dt = rbindlist(corr_res[3:5], use.names = TRUE, idcol = "metric")
 theme_set(theme_classic())
 ggplot(metrics_dt, aes(x = metric, y = correlation, color = metric)) + geom_boxplot()
 ```
 
-![fig1](README_figs/README-metric_corr-1.png)
 
 Stable fragment correlation uses the calculated fragment size while flex always
 uses the fragment size with the maximum SCC. Flex will report high correlation
@@ -100,4 +98,5 @@ from artifact peaks but is useful for assessing fragment size distribution.
 ```{r metric_shift}
 ggplot(metrics_dt, aes(x = metric, y = shift, color = metric)) + geom_boxplot()
 ```
+
 

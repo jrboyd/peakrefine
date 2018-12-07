@@ -105,7 +105,7 @@ theme_set(theme_classic())
 ggplot(metrics_dt, aes(x = metric, y = correlation, color = metric)) + geom_boxplot()
 ```
 
-![fig1](README_figs/README-metric_corr-1.png)<!-- -->
+![](README_figs/README-metric_corr-1.png)<!-- -->
 
 Stable fragment correlation uses the calculated fragment size while flex
 always uses the fragment size with the maximum SCC. Flex will report
@@ -117,4 +117,4 @@ distribution.
 ggplot(metrics_dt, aes(x = metric, y = shift, color = metric)) + geom_boxplot()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](README_figs/README-metric_shift-1.png)<!-- -->
