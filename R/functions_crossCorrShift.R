@@ -43,6 +43,7 @@ crossCorrByShift = function(bam_file,
     if(is.null(names(test_gr))){
         names(test_gr) = test_gr$id
     }
+    test_gr = harmonize_seqlengths(test_gr, bam_file)
 
     message("fetch reads...")
     # browser()

@@ -6,10 +6,15 @@ library(peakrefine)
 library(digest)
 library(BiocFileCache)
 
-pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL, frag_min = 50, ncores = 16, gen = "hg38",
+pipeline = function(bam_file, qgr, cach_version, inputs_file = NULL,
+                    output_dir = "results_default",
+                    frag_min = 50, ncores = 16, gen = "hg38",
                     to_score = c("signalValue", "qValue", "stable_frag_corr", "flex_frag_corr", "read_corr", "flex_frag_len"),
-                    frag_max = 250, pdfname = paste0("results3/motif_res_", sub(".bam", "", basename(bam_file)), ".pdf"),
-                    skip_motif = FALSE, force_overwrite_motif = FALSE, force_overwrite_corr = FALSE){
+                    frag_max = 250,
+                    pdfname = file.path(ouptut_dir, paste0("motif_res_", sub(".bam", "", basename(bam_file)), ".pdf")),
+                    skip_motif = FALSE,
+                    force_overwrite_motif = FALSE,
+                    force_overwrite_corr = FALSE){
     # if(file.exists(pdfname)) return()
     # prep query granges
 

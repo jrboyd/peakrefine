@@ -24,7 +24,8 @@ crossCorrByRle = function(bam_file,
                           max_dupes = 1,
                           fragment_sizes = 50:300,
                           read_length = NULL,
-                          include_plots = TRUE){
+                          include_plots = TRUE,
+                          ...){
     rn = NULL # reserve for data.table
     if(is.null(query_gr$name)){
         if(is.null(names(query_gr))){
@@ -43,8 +44,11 @@ crossCorrByRle = function(bam_file,
     names(query_gr) = query_gr$name
     # query_gr = resize(query_gr, 500, fix = "center")
 
+    query_gr = harmonize_seqlengths(query_gr, bam_file)
+
     Param <- ScanBamParam(which=query_gr,
-                          what=c("flag","mapq"))
+                          what=c("flag","mapq"),
+                          ...)
     temp <- GenomicAlignments::readGAlignments(bam_file,param=Param)
     dt = as.data.table(temp)
     # browser()
@@ -112,15 +116,28 @@ getReadLength = function(bam_file,
     readlength
 }
 
+#calculate mode
+.my_mode = function(x){
+    names(sort(-table(x)))[1]
+}
+
 gather_metrics = function(peak_strand_corr, read_length = NULL){
     max_dt = peak_strand_corr[, .(shift = shift[which.max(correlation)], correlation = max(correlation)), by = .(id)]
-    if(is.null(read_length)){
-        fl = round(median(max_dt[shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
-    }else{
-        fl = round(median(max_dt[shift != read_length][shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
-    }
+    # if(is.null(read_length)){
+    #     fl = round(.my_mode(max_dt[shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
+    # }else{
+    #     fl = round(.my_mode(max_dt[shift != read_length][shift != min(shift, na.rm = TRUE) & shift != max(shift, na.rm = TRUE)]$shift, na.rm = TRUE))
+    # }
     flex_frag_corrs = max_dt[, .(shift, id, correlation)]
+
+
+    average_corr = peak_strand_corr[, .(correlation = mean(correlation)), .(shift)]
+
+    fl = average_corr[, shift[which.max(correlation)[1]]]
+
+
     stable_frag_corrs = peak_strand_corr[shift == fl]
+
 
     if(!is.null(read_length)){
         read_corrs = peak_strand_corr[shift == read_length]
@@ -129,12 +146,14 @@ gather_metrics = function(peak_strand_corr, read_length = NULL){
                    read_correlation = read_corrs,
                    flex_fragment_correlation = flex_frag_corrs,
                    stable_fragment_correlation = stable_frag_corrs,
-                   full_correlation_results = peak_strand_corr)
+                   full_correlation_results = peak_strand_corr,
+                   average_correlation = average_corr)
     }else{
         out = list(fragment_length = fl,
                    flex_fragment_correlation = flex_frag_corrs,
                    stable_fragment_correlation = stable_frag_corrs,
-                   full_correlation_results = peak_strand_corr)
+                   full_correlation_results = peak_strand_corr,
+                   average_correlation = average_corr)
     }
     out
 }
@@ -160,7 +179,8 @@ calcSCCMetrics = function(bam_file, qgr, frag_sizes, fetch_size = 3*max(frag_siz
                           bam_md5 = NULL, qgr_md5 = NULL,
                           cache_path = "~/.cache_peakrefine",
                           cach_version = "v1", force_overwrite = FALSE,
-                          n_splits = getOption("mc.cores", 1L)){
+                          n_splits = getOption("mc.cores", 1L),
+                          ...){
     if(is.null(bam_md5)){
         bam_md5 = tools::md5sum(bam_file)
     }
@@ -180,6 +200,7 @@ calcSCCMetrics = function(bam_file, qgr, frag_sizes, fetch_size = 3*max(frag_siz
 
     qgr = resize(qgr, fetch_size, fix = 'center')
 
+
     bfc_corr = BiocFileCache::BiocFileCache(cache_path, ask = FALSE)
     corr_key = paste(qgr_md5, bam_md5, digest::digest(frag_sizes), fetch_size, cach_version, sep = "_")
     corr_res = bfcif(bfc_corr, corr_key, function(){
@@ -191,7 +212,7 @@ calcSCCMetrics = function(bam_file, qgr, frag_sizes, fetch_size = 3*max(frag_siz
         rl = getReadLength(bam_file, qgr)
         lres = parallel::mclapply(unique(grps), function(g){
             k = grps == g
-            crossCorrByRle(bam_file, qgr[k], fragment_sizes = frag_sizes, read_length = rl)
+            crossCorrByRle(bam_file, qgr[k], fragment_sizes = frag_sizes, read_length = rl, ...)
         })
         peak_strand_corr = rbindlist(lres)
         gather_metrics(peak_strand_corr, rl)

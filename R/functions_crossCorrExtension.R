@@ -47,6 +47,7 @@ crossCorrByExtension = function(bam_file,
         names(test_gr) = test_gr$id
     }
 
+    test_gr = harmonize_seqlengths(test_gr, bam_file)
     # browser()
     message("fetch reads...")
     reads_dt = .fetch_bam_stranded(bam_file, test_gr, max_dupes = max_dupes)

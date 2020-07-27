@@ -214,9 +214,9 @@ subset_MotifEnrichmentResults = function(me_res, k, pwmobj){
     ### top enriched can be cached but score and pval are group calcs
     res = me_res@res
     res$sequences = res$sequences[k]
-    res$sequence.nobg = res$sequence.nobg[k, ]
-    res$sequence.bg = res$sequence.bg[k, ]
-    res$sequence.norm = res$sequence.norm[k, ]
+    res$sequence.nobg = res$sequence.nobg[k, , drop = FALSE]
+    res$sequence.bg = res$sequence.bg[k, , drop = FALSE]
+    res$sequence.norm = res$sequence.norm[k, , drop = FALSE]
 
     me_res@res = .recalc_MotifEnrichmentResults(res, pwmobj)
     return(me_res)
